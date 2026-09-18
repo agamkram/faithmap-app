@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#0e1116" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Worship" />
+  <meta
+    name="description"
+    content="US map of houses of worship — Christian, Jewish, Muslim, Hindu, Buddhist, Sikh."
+  />
+  <title>Worship — US houses of worship</title>
+  <!--
+    iOS-full-bleed.txt Bug B: PWA uses fillH. Safari tab must NOT use VV
+    offsetTop/Left. Safari: shell inset 0. Do not use max-height:100dvh on PWA.
+  -->
+  <script>
+    (function () {
+      try {
+        var r = document.documentElement;
+        var n = window.navigator;
+        var standalone =
+          n.standalone === true ||
+          (window.matchMedia &&
+            (window.matchMedia("(display-mode: standalone)").matches ||
+              window.matchMedia("(display-mode: fullscreen)").matches));
+        var iw = window.innerWidth || 0;
+        var ih = window.innerHeight || 0;
+        var sw = (window.screen && window.screen.width) || 0;
+        var sh = (window.screen && window.screen.height) || 0;
+        var screenMax = Math.max(sw, sh);
+        var screenMin = Math.min(sw, sh);
+        if (standalone) {
+          r.classList.add("pwa-standalone");
+          var fillH = ih >= iw ? Math.max(ih, screenMax) : Math.max(ih, screenMin);
+          var extra = 0;
+          if (Math.min(iw, ih) >= 600 && screenMax < ih - 10) extra = 20;
+          var total = fillH + extra;
+          r.style.setProperty("--pwa-fill-h", fillH + "px");
+          r.style.setProperty("--pwa-extra-b", extra + "px");
+          r.style.height = total + "px";
+          r.style.minHeight = total + "px";
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=1" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Michroma&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="/styles.css?v=1" />
+</head>
+<body>
+  <a class="skip-link" href="#map">Skip to map</a>
+  <div class="app" id="app">
+    <div class="chrome" id="chrome">
+      <header class="topbar">
+        <button type="button" class="brand" id="about-btn" aria-expanded="false" aria-controls="about">
+          <h1 class="brand-title">Worship</h1>
+        </button>
+        <span class="ver" id="ver-label">v1</span>
+      </header>
+      <section class="totals" aria-label="Totals">
+        <div class="tot">
+          <span class="k">US</span>
+          <span class="v" id="tot-us">—</span>
+        </div>
+        <div class="tot">
+          <span class="k" id="lab-state">State</span>
+          <span class="v" id="tot-state">—</span>
+        </div>
+        <div class="tot">
+          <span class="k" id="lab-county">County</span>
+          <span class="v" id="tot-county">—</span>
+        </div>
+      </section>
+      <nav class="chips" id="chips" aria-label="Religions"></nav>
+      <p class="source" id="source-line">Mapped 501(c)(3) buildings — not a census of congregations.</p>
+    </div>
+
+    <main class="map-pane" id="main">
+      <div id="map" class="map" role="application" aria-label="United States map"></div>
+      <div class="map-badge" id="map-badge">v1</div>
+      <div class="map-btns" role="group" aria-label="Frame the map">
+        <button type="button" class="map-btn" id="btn-us">US</button>
+        <button type="button" class="map-btn" id="btn-ak">AK</button>
+        <button type="button" class="map-btn" id="btn-hi">HI</button>
+      </div>
+      <div class="status" id="status">Loading map…</div>
+    </main>
+  </div>
+
+  <div class="sheet hidden" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-name">
+    <button type="button" class="sheet-close" id="sheet-close" aria-label="Close">×</button>
+    <h2 id="sheet-name">—</h2>
+    <p class="sheet-rel" id="sheet-rel"></p>
+    <p class="sheet-where" id="sheet-where"></p>
+    <a class="sheet-maps" id="sheet-maps" target="_blank" rel="noopener noreferrer">Open in Maps</a>
+  </div>
+
+  <div class="about hidden" id="about" role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <button type="button" class="sheet-close" id="about-close" aria-label="Close">×</button>
+    <h2 id="about-title">Worship</h2>
+    <p>
+      Six religions on a US map. Dots are IRS-registered houses of worship
+      geocoded by Homeland Infrastructure (HERE). County and state totals
+      follow those dots. The Religion Census counts congregations we cannot
+      always pin — those two numbers will not match.
+    </p>
+    <p class="about-src" id="about-src"></p>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/supercluster@8.0.1/dist/supercluster.min.js"></script>
+  <script src="/app.js?v=1"></script>
+  <script>
+    var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
+      location.hostname
+    );
+    var EXPECTED = "v1";
+
+    function loadedVersions() {
+      var css = getComputedStyle(document.documentElement)
+        .getPropertyValue("--wo-css")
+        .trim();
+      return { js: window.__APP_VERSION || "", css: css ? "css" + css : "" };
+    }
+
+    function purgeCaches() {
+      var jobs = [];
+      if ("serviceWorker" in navigator) {
+        jobs.push(
+          navigator.serviceWorker.getRegistrations().then(function (rs) {
+            return Promise.all(rs.map(function (r) { return r.unregister(); }));
+          })
+        );
+      }
+      if (window.caches) {
+        jobs.push(
+          caches.keys().then(function (ks) {
+            return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+          })
+        );
+      }
+      return Promise.all(jobs).catch(function () {});
+    }
+
+    window.addEventListener("load", function () {
+      var got = loadedVersions();
+      var stale = got.js !== EXPECTED || got.css !== "css" + EXPECTED.slice(1);
+
+      if (IS_LOCAL) {
+        navigator.serviceWorker &&
+          navigator.serviceWorker.getRegistrations().then(function (rs) {
+            if (rs.length || stale) {
+              purgeCaches().then(function () {
+                if (stale && !sessionStorage.getItem("wo-reloaded")) {
+                  sessionStorage.setItem("wo-reloaded", "1");
+                  location.reload();
+                }
+              });
+            }
+          });
+        return;
+      }
+
+      if (stale) {
+        purgeCaches().then(function () {
+          if (!sessionStorage.getItem("wo-reloaded")) {
+            sessionStorage.setItem("wo-reloaded", "1");
+            location.reload();
+          }
+        });
+        return;
+      }
+      sessionStorage.removeItem("wo-reloaded");
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js");
+      }
+    });
+  </script>
+</body>
+</html>
