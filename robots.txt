@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://faithmap.markmaga.com/sitemap.xml

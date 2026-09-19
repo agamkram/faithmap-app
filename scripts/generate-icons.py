@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Worship home-screen icons — dark panel + six religion dots."""
+"""Generate FaithMap home-screen icons — dark panel + six religion dots."""
 from __future__ import annotations
 
 import math
@@ -57,6 +57,7 @@ def save(img: Image.Image, name: str) -> None:
 def main() -> None:
     save(build_icon(192), "icon-192.png")
     save(build_icon(512), "icon-512.png")
+    save(build_icon(512, maskable=True), "icon-maskable-512.png")
     save(build_icon(180), "apple-touch-icon.png")
     save(build_icon(180), "apple-touch-icon-180x180.png")
     img32 = build_icon(64).resize((32, 32), Image.Resampling.LANCZOS)

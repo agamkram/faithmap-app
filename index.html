@@ -14,7 +14,24 @@
     name="description"
     content="US map of houses of worship — Christian, Jewish, Muslim, Hindu, Buddhist, Sikh."
   />
-  <title>FaithMap — US houses of worship</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Mark Maga" />
+  <meta property="og:title" content="FaithMap — US houses of worship" />
+  <meta
+    property="og:description"
+    content="Mapped IRS places and 2020 Religion Census congregations on a US map."
+  />
+  <meta property="og:url" content="https://faithmap.markmaga.com/" />
+  <link rel="canonical" href="https://faithmap.markmaga.com/" />
+  <meta property="og:image" content="https://faithmap.markmaga.com/icon-512.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="FaithMap — US houses of worship" />
+  <meta
+    name="twitter:description"
+    content="Mapped IRS places and 2020 Religion Census congregations on a US map."
+  />
+  <meta name="twitter:image" content="https://faithmap.markmaga.com/icon-512.png" />
+  <title>FaithMap — US houses of worship | Mark Maga</title>
   <!--
     iOS-full-bleed.txt Bug B: PWA uses fillH. Safari tab must NOT use VV
     offsetTop/Left. Safari: shell inset 0. Do not use max-height:100dvh on PWA.
@@ -50,8 +67,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=63" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=63" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=64" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=64" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -62,7 +79,7 @@
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/styles.css?v=63" />
+  <link rel="stylesheet" href="/styles.css?v=64" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
@@ -130,12 +147,12 @@
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="/app.js?v=63"></script>
+  <script src="/app.js?v=64"></script>
   <script>
     var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
       location.hostname
     );
-    var EXPECTED = "v63";
+    var EXPECTED = "v64";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)
@@ -193,9 +210,18 @@
       }
       sessionStorage.removeItem("wo-reloaded");
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/sw.js");
+        navigator.serviceWorker
+          .register("/sw.js", { updateViaCache: "none" })
+          .then(function (reg) {
+            reg.update();
+          })
+          .catch(function () {});
       }
     });
   </script>
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

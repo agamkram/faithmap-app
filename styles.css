@@ -17,7 +17,7 @@
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
-  --wo-css: 63;
+  --wo-css: 64;
   --pwa-fill-h: 100%;
   --pwa-extra-b: 0px;
   --christian: #ffd58a;
