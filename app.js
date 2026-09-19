@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v71";
+  const APP_VERSION = "v73";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -56,6 +56,9 @@
     map: null,
     totalsTimer: 0,
     selected: null,
+    stack: null,
+    stackKey: null,
+    stackIdx: 0,
     focusState: null,
     focusCounty: null,
     outlineState: null,
@@ -381,25 +384,58 @@
     if (!state.map) return null;
     /* Touch-sized target; do not shrink when a state is focused. */
     const hit = 24;
-    let best = null;
     let bestD = hit * hit;
     const b = state.map.getBounds();
+    const west = b.getWest();
+    const east = b.getEast();
+    const south = b.getSouth();
+    const north = b.getNorth();
+    const near = [];
     for (let i = 0; i < state.places.length; i++) {
       const p = state.places[i];
       const rel = RELIGIONS[p.r];
       if (!rel || !state.active.has(rel.id)) continue;
-      if (p.o < b.getWest() || p.o > b.getEast() || p.a < b.getSouth() || p.a > b.getNorth())
-        continue;
+      if (p.o < west || p.o > east || p.a < south || p.a > north) continue;
       const pt = state.map.project([p.o, p.a]);
       const dx = pt.x - point.x;
       const dy = pt.y - point.y;
       const d = dx * dx + dy * dy + (p.census ? 36 : 0);
-      if (d < bestD) {
-        bestD = d;
-        best = p;
-      }
+      if (d <= hit * hit) near.push({ p: p, d: d });
+      if (d < bestD) bestD = d;
     }
-    return best;
+    if (!near.length) return null;
+    /* Same IRS geocode often stacks many orgs on one lat/lon. Keep everyone
+       tied for closest, then cycle on repeated taps at that spot. */
+    const stack = near
+      .filter(function (x) {
+        return x.d <= bestD + 0.25;
+      })
+      .map(function (x) {
+        return x.p;
+      });
+    const counts = Object.create(null);
+    for (let i = 0; i < stack.length; i++) {
+      const r = stack[i].r;
+      counts[r] = (counts[r] || 0) + 1;
+    }
+    stack.sort(function (a, b) {
+      const ca = counts[a.r] || 0;
+      const cb = counts[b.r] || 0;
+      /* Rarer religion in the stack first — otherwise 5 churches bury 1 synagogue. */
+      if (ca !== cb) return ca - cb;
+      if (a.r !== b.r) return a.r - b.r;
+      return String(a.n || "").localeCompare(String(b.n || ""));
+    });
+    const key =
+      stack[0].a.toFixed(5) + "," + stack[0].o.toFixed(5) + ":" + stack.length;
+    if (state.stackKey === key && stack.length > 1) {
+      state.stackIdx = (state.stackIdx + 1) % stack.length;
+    } else {
+      state.stackKey = key;
+      state.stackIdx = 0;
+    }
+    state.stack = stack;
+    return stack[state.stackIdx];
   }
 
   function openSheet(place) {
@@ -409,6 +445,11 @@
       state.focusCounty = { s: place.s, c: place.c, id: null };
     }
     const rel = RELIGIONS[place.r];
+    const stackN = state.stack && state.stack.length > 1 ? state.stack.length : 0;
+    const stackHint =
+      stackN > 1
+        ? " · " + (state.stackIdx + 1) + " of " + stackN + " here — tap again"
+        : "";
     if (place.census) {
       el.sheetName.textContent = "Census placement";
       el.sheetRel.textContent = rel ? rel.label : "";
@@ -416,14 +457,15 @@
       el.sheetWhere.textContent =
         (place.c ? place.c + " County" : "County") +
         (place.s ? " · " + place.s : "") +
-        " · not a street address";
+        " · not a street address" +
+        stackHint;
       el.sheetMaps.classList.add("hidden");
     } else {
       el.sheetName.textContent = place.n || "Unnamed";
       el.sheetRel.textContent = rel ? rel.label : "";
       el.sheetRel.style.color = rel ? rel.color : "";
       const bits = [place.y, place.c ? place.c + " County" : "", place.s].filter(Boolean);
-      el.sheetWhere.textContent = bits.join(" · ");
+      el.sheetWhere.textContent = bits.join(" · ") + stackHint;
       el.sheetMaps.classList.remove("hidden");
       el.sheetMaps.href =
         "https://www.google.com/maps/search/?api=1&query=" +
@@ -438,6 +480,9 @@
 
   function closeSheet() {
     state.selected = null;
+    state.stack = null;
+    state.stackKey = null;
+    state.stackIdx = 0;
     el.sheet.classList.add("hidden");
     recount();
   }
@@ -907,6 +952,9 @@
       } else {
         state.active.add(id);
       }
+      state.stackKey = null;
+      state.stackIdx = 0;
+      state.stack = null;
       if (state.selected) {
         const rel = RELIGIONS[state.selected.r];
         if (!rel || !state.active.has(rel.id)) closeSheet();
