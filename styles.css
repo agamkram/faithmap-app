@@ -17,7 +17,7 @@
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
-  --wo-css: 31;
+  --wo-css: 39;
   --pwa-fill-h: 100%;
   --pwa-extra-b: 0px;
   --christian: #ffd58a;
@@ -315,31 +315,59 @@ html.pwa-standalone .app {
 .about {
   position: fixed;
   z-index: 20;
-  left: 12px;
-  right: 12px;
   bottom: max(12px, var(--safe-b));
-  max-width: 420px;
-  margin: 0 auto;
   background: var(--bg-elev);
   border: 1px solid var(--line);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.about {
+  left: 12px;
+  right: 12px;
+  max-width: 420px;
+  margin: 0 auto;
   border-radius: 12px;
   padding: 16px 16px 18px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.sheet {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(320px, calc(100vw - 24px));
+  margin: 0;
+  border-radius: 6px;
+  padding: 7px 9px 8px;
 }
 
 .sheet-close {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 2px;
+  right: 4px;
   appearance: none;
   border: 0;
   background: none;
   color: var(--text-dim);
-  font-size: 22px;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 3px;
   cursor: pointer;
 }
 
-.sheet h2,
+.about .sheet-close {
+  top: 8px;
+  right: 10px;
+  font-size: 22px;
+}
+
+.sheet h2 {
+  margin: 0 18px 1px 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
 .about h2 {
   margin: 0 28px 6px 0;
   font-size: 18px;
@@ -347,14 +375,16 @@ html.pwa-standalone .app {
 
 .sheet-rel {
   margin: 0;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
+  line-height: 1.25;
 }
 
 .sheet-where {
-  margin: 4px 0 12px;
+  margin: 1px 0 6px;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .sheet-maps {
@@ -363,9 +393,10 @@ html.pwa-standalone .app {
   background: var(--accent);
   text-decoration: none;
   font-weight: 600;
-  font-size: 13px;
-  padding: 8px 12px;
-  border-radius: 6px;
+  font-size: 10px;
+  line-height: 1.15;
+  padding: 2px 6px;
+  border-radius: 3px;
 }
 
 .about p {
@@ -374,29 +405,33 @@ html.pwa-standalone .app {
   font-size: 13px;
 }
 
-.leaflet-container {
-  background: var(--bg-panel);
+.maplibregl-map {
   font-family: var(--font);
+  background: var(--bg-panel);
 }
 
-.leaflet-control-attribution {
-  font-size: 10px;
+.maplibregl-ctrl-attrib {
+  font-size: 10px !important;
   background: rgba(14, 17, 22, 0.7) !important;
   color: var(--text-mute) !important;
   max-width: 55%;
 }
-.leaflet-control-attribution a {
+.maplibregl-ctrl-attrib a {
   color: var(--text-dim) !important;
 }
 
-.leaflet-control-zoom {
-  display: none !important;
+.maplibregl-ctrl-bottom-left .maplibregl-ctrl,
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl {
+  margin: 0 8px 8px 0;
 }
 
 .wo-dots {
   position: absolute;
-  left: 0;
-  top: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
 }
 
 @media (orientation: landscape) and (max-height: 430px) {

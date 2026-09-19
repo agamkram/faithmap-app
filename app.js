@@ -2,15 +2,12 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v31";
+  const APP_VERSION = "v39";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
-  const MAP_TILE_URL =
-    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" +
-    (CARTO_KEY ? "?key=" + encodeURIComponent(CARTO_KEY) : "");
-  const MAP_TILE_ATTR =
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>';
+  const CARTO_STYLE =
+    "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
   const RELIGIONS = [
     { id: "christian", label: "Christian", color: "#ffd58a" },
@@ -164,15 +161,14 @@
     if (!state.map || !state.canvas) return;
     const map = state.map;
     const canvas = state.canvas;
-    const size = map.getSize();
+    const size = map.getContainer().getBoundingClientRect();
+    const w = Math.max(1, Math.round(size.width));
+    const h = Math.max(1, Math.round(size.height));
     const dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
-    const topLeft = map.containerPointToLayerPoint([0, 0]);
-    const origin = L.point(Math.round(topLeft.x), Math.round(topLeft.y));
-    L.DomUtil.setPosition(canvas, origin);
-    canvas.width = Math.round(size.x * dpr);
-    canvas.height = Math.round(size.y * dpr);
-    canvas.style.width = size.x + "px";
-    canvas.style.height = size.y + "px";
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
     const ctx = canvas.getContext("2d", { alpha: true });
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
@@ -185,12 +181,11 @@
     const ease = t * t * (3 - 2 * t);
     const s = Math.max(1, Math.round((0.6 + 2.9 * ease) * dpr));
     const pad = s + 1;
-    const b = map.getBounds().pad(0.02);
+    const b = map.getBounds();
     const west = b.getWest();
     const east = b.getEast();
     const south = b.getSouth();
     const north = b.getNorth();
-    const pixelOrigin = map.getPixelOrigin();
     const buckets = [[], [], [], [], [], []];
     for (let i = 0; i < state.places.length; i++) {
       const p = state.places[i];
@@ -205,31 +200,30 @@
       ctx.fillStyle = RELIGIONS[r].color;
       for (let i = 0; i < pts.length; i++) {
         const p = pts[i];
-        const proj = map.project(L.latLng(p.a, p.o), z);
-        const x = Math.round((proj.x - pixelOrigin.x - origin.x) * dpr);
-        const y = Math.round((proj.y - pixelOrigin.y - origin.y) * dpr);
+        const pt = map.project([p.o, p.a]);
+        const x = Math.round(pt.x * dpr);
+        const y = Math.round(pt.y * dpr);
         if (x < -pad || y < -pad || x > canvas.width + pad || y > canvas.height + pad) continue;
         ctx.fillRect(x, y, s, s);
       }
     }
   }
 
-  function placeAtClick(ev) {
+  function placeAtClick(point) {
     if (!state.map) return null;
     const hit = 10;
-    const origin = ev.containerPoint;
     let best = null;
     let bestD = hit * hit;
-    const b = state.map.getBounds().pad(0.02);
+    const b = state.map.getBounds();
     for (let i = 0; i < state.places.length; i++) {
       const p = state.places[i];
       const rel = RELIGIONS[p.r];
       if (!rel || !state.active.has(rel.id)) continue;
       if (p.o < b.getWest() || p.o > b.getEast() || p.a < b.getSouth() || p.a > b.getNorth())
         continue;
-      const pt = state.map.latLngToContainerPoint([p.a, p.o]);
-      const dx = pt.x - origin.x;
-      const dy = pt.y - origin.y;
+      const pt = state.map.project([p.o, p.a]);
+      const dx = pt.x - point.x;
+      const dy = pt.y - point.y;
       const d = dx * dx + dy * dy;
       if (d < bestD) {
         bestD = d;
@@ -357,66 +351,154 @@
 
   function fit(bounds) {
     if (!state.map) return;
-    state.map.invalidateSize();
-    state.map.fitBounds(bounds, { padding: [20, 20], animate: false });
+    state.map.resize();
+    /* CONUS stored as Leaflet-style [[lat,lng],[lat,lng]] → MapLibre [lng,lat]. */
+    const sw = [bounds[0][1], bounds[0][0]];
+    const ne = [bounds[1][1], bounds[1][0]];
+    state.map.fitBounds([sw, ne], { padding: 20, animate: false });
   }
 
   function refit() {
     fit(CONUS);
   }
 
-  function initMap() {
-    state.map = L.map("map", {
-      zoomControl: false,
-      attributionControl: true,
-      minZoom: 3,
-      maxZoom: 18,
-      worldCopyJump: false,
-      zoomAnimation: false,
-      markerZoomAnimation: false,
-      zoomSnap: 0,
+  function brightenAdminLines(style) {
+    const layers = style.layers || [];
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
+      const id = layer.id || "";
+      if (!layer.paint) continue;
+      if (id === "boundary_state") {
+        /* Stock style hides states until z4 and dashes them — undo both. */
+        layer.minzoom = 2;
+        delete layer.paint["line-dasharray"];
+        layer.paint["line-color"] = "#d4dbe6";
+        layer.paint["line-opacity"] = 1;
+        layer.paint["line-width"] = 0.5;
+        layer.layout = Object.assign({}, layer.layout || {}, {
+          "line-cap": "round",
+          "line-join": "round",
+        });
+      } else if (id === "boundary_country_inner") {
+        layer.minzoom = 0;
+        delete layer.paint["line-dasharray"];
+        layer.paint["line-color"] = "#e8ecf2";
+        layer.paint["line-opacity"] = 1;
+        layer.paint["line-width"] = 0.7;
+      } else if (id === "boundary_country_outline") {
+        layer.paint["line-opacity"] = 0.22;
+      } else if (id === "boundary_county") {
+        /* Carto tiles omit counties until z9 — hide and draw our own earlier. */
+        layer.layout = Object.assign({}, layer.layout || {}, {
+          visibility: "none",
+        });
+      }
+    }
+    return style;
+  }
+
+  function cartoTransformRequest(url) {
+    if (!CARTO_KEY) return { url: url };
+    if (url.indexOf("cartocdn.com") === -1) return { url: url };
+    if (url.indexOf("key=") !== -1) return { url: url };
+    return {
+      url: url + (url.indexOf("?") >= 0 ? "&" : "?") + "key=" + encodeURIComponent(CARTO_KEY),
+    };
+  }
+
+  function addEarlyCountyLines(map) {
+    if (!map || map.getSource("wo-counties")) return;
+    map.addSource("wo-counties", {
+      type: "geojson",
+      data: "/geo/counties.geojson",
     });
-    L.tileLayer(MAP_TILE_URL, {
-      attribution: MAP_TILE_ATTR,
-      subdomains: "abcd",
-      maxZoom: 19,
-    }).addTo(state.map);
-    const canvas = L.DomUtil.create("canvas", "wo-dots");
-    canvas.style.pointerEvents = "none";
-    canvas.style.zIndex = "500";
-    state.map.getPanes().overlayPane.appendChild(canvas);
+    map.addLayer({
+      id: "wo-counties-line",
+      type: "line",
+      source: "wo-counties",
+      minzoom: 5,
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": "#c5d0e0",
+        "line-opacity": 0.9,
+        "line-width": 0.4,
+      },
+    });
+  }
+
+  async function initMap() {
+    if (!window.maplibregl) throw new Error("MapLibre missing");
+    const res = await fetch(CARTO_STYLE, { cache: "force-cache" });
+    if (!res.ok) throw new Error("style " + res.status);
+    const style = brightenAdminLines(await res.json());
+
+    state.map = new maplibregl.Map({
+      container: "map",
+      style: style,
+      minZoom: 2,
+      maxZoom: 18,
+      attributionControl: true,
+      fadeDuration: 0,
+      dragRotate: false,
+      pitchWithRotate: false,
+      rollEnabled: false,
+      transformRequest: cartoTransformRequest,
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.className = "wo-dots";
+    canvas.setAttribute("aria-hidden", "true");
+    state.map.getContainer().appendChild(canvas);
     state.canvas = canvas;
+
+    await new Promise(function (resolve, reject) {
+      state.map.once("load", resolve);
+      state.map.once("error", function (ev) {
+        reject((ev && ev.error) || new Error("map error"));
+      });
+    });
+
+    addEarlyCountyLines(state.map);
     fit(CONUS);
+
     let renderRaf = 0;
     function scheduleRender() {
       if (renderRaf) return;
-      renderRaf = requestAnimationFrame(() => {
+      renderRaf = requestAnimationFrame(function () {
         renderRaf = 0;
         render();
       });
     }
-    state.map.on("move zoom", scheduleRender);
-    state.map.on("moveend zoomend viewreset", () => {
+    state.map.on("move", scheduleRender);
+    state.map.on("zoom", scheduleRender);
+    state.map.on("moveend", function () {
       scheduleRender();
       scheduleTotals();
     });
-    state.map.on("click", (ev) => {
-      const place = placeAtClick(ev);
+    state.map.on("zoomend", function () {
+      scheduleRender();
+      scheduleTotals();
+    });
+    state.map.on("click", function (ev) {
+      const place = placeAtClick(ev.point);
       if (place) openSheet(place);
       else closeSheet();
     });
-    window.addEventListener("resize", () => {
-      setTimeout(() => {
+    window.addEventListener("resize", function () {
+      setTimeout(function () {
         if (!state.map) return;
-        state.map.invalidateSize();
+        state.map.resize();
         if (state.map.getZoom() <= 5) refit();
         else scheduleRender();
       }, 200);
     });
-    window.addEventListener("orientationchange", () => {
-      setTimeout(() => {
+    window.addEventListener("orientationchange", function () {
+      setTimeout(function () {
         if (!state.map) return;
-        state.map.invalidateSize();
+        state.map.resize();
         if (state.map.getZoom() <= 5) refit();
         else scheduleRender();
       }, 280);
@@ -507,7 +589,13 @@
     if (el.verLabel) el.verLabel.textContent = APP_VERSION;
     paintChips();
     wire();
-    initMap();
+    try {
+      await initMap();
+    } catch (err) {
+      console.error(err);
+      setStatus("Map failed to load.");
+      return;
+    }
     try {
       await load();
     } catch (err) {
