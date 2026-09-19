@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v76";
+  const APP_VERSION = "v77";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";

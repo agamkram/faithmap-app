@@ -30,7 +30,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / ".pydeps"))
+sys.path.insert(0, str(ROOT / "scripts"))
 import shapefile  # noqa: E402
+from mapped_filters import osm_should_drop  # noqa: E402
 
 DATA = ROOT / "data"
 RAW = DATA / "raw" / "geofabrik-pofw"
@@ -459,6 +461,9 @@ def main() -> int:
             matched += 1
             matched_by[r["rel"]] += 1
         else:
+            drop_reason = osm_should_drop(r["name"])
+            if drop_reason:
+                continue
             gaps.append(r)
             gaps_by[r["rel"]] += 1
 

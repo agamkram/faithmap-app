@@ -53,9 +53,16 @@ US_STATES = {
 }
 
 SKIP_RE = re.compile(
-    r"\b(SCHOOL|ACADEMY|COLLEGE|UNIVERSITY|SEMINARY|ELEMENTARY|"
-    r"HIGH SCHOOL|KINDERGARTEN|DAYCARE|DAY CARE|CAMPGROUND|"
-    r"BIBLE SOCIETY)\b"
+    r"\b(ELEMENTARY SCHOOL|HIGH SCHOOL|MIDDLE SCHOOL|KINDERGARTEN|"
+    r"DAYCARE|DAY CARE|BIBLE SOCIETY|"
+    r"YMCA|YWCA|COUNCIL OF CHURCHES|"
+    r"CEMETERY|GRAVEYARD|MAUSOLEUM)\b"
+)
+# School/academy/seminary/college/university without a worship cue — handled in classify()
+SCHOOL_ENTITY_RE = re.compile(r"\b(SCHOOL|ACADEMY|SEMINARY|COLLEGE|UNIVERSITY)\b")
+WORSHIP_CUE_RE = re.compile(
+    r"\b(CHURCH|CHAPEL|CATHEDRAL|PARISH|MOSQUE|MASJID|SYNAGOGUE|"
+    r"TEMPLE|MANDIR|GURDWARA|KINGDOM HALL|BAPTIST|METHODIST)\b"
 )
 MUSLIM_RE = re.compile(
     r"\b(MOSQUE|MASJID|MASJED|MUSALLA|MUSALLAH|ISLAMIC|MUSLIM|JAMIA|"
@@ -109,6 +116,8 @@ def title_name(raw: str) -> str:
 def classify(name: str, ntee: str) -> str | None:
     n = (name or "").upper()
     if SKIP_RE.search(n):
+        return None
+    if SCHOOL_ENTITY_RE.search(n) and not WORSHIP_CUE_RE.search(n):
         return None
     if MUSLIM_RE.search(n):
         return "muslim"
@@ -286,6 +295,11 @@ def main() -> None:
     rc = subprocess.call([sys.executable, str(ROOT / "scripts" / "reconcile-osm-worship.py")])
     if rc != 0:
         raise RuntimeError("reconcile-osm-worship failed (%d)" % rc)
+
+    print("refining Mapped (name DROP + stack collapse)…", flush=True)
+    rc = subprocess.call([sys.executable, str(ROOT / "scripts" / "refine-mapped.py")])
+    if rc != 0:
+        raise RuntimeError("refine-mapped failed (%d)" % rc)
 
 
 if __name__ == "__main__":
