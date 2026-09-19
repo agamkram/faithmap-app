@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v73";
+  const APP_VERSION = "v75";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -848,13 +848,21 @@
       style: style,
       minZoom: 2,
       maxZoom: 18,
+      bearing: 0,
+      pitch: 0,
+      maxPitch: 0,
       attributionControl: false,
       fadeDuration: 0,
       dragRotate: false,
       pitchWithRotate: false,
+      touchPitch: false,
       rollEnabled: false,
       transformRequest: cartoTransformRequest,
     });
+    /* Pan + zoom only — no twist / tilt (mouse or touch). */
+    state.map.dragRotate.disable();
+    state.map.touchZoomRotate.disableRotation();
+    if (state.map.touchPitch) state.map.touchPitch.disable();
 
     const canvas = document.createElement("canvas");
     canvas.className = "wo-dots";

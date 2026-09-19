@@ -1,9 +1,9 @@
 {
   "built": "2026-09-19",
   "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285)",
-  "n": 217061,
+  "n": 216093,
   "by": {
-    "christian": 204297,
+    "christian": 203329,
     "jewish": 6013,
     "muslim": 2749,
     "hindu": 1030,
@@ -72,10 +72,13 @@
     "fq_added": 8,
     "match_m": 250.0
   },
-  "county_assign": {
-    "changed_county": 51,
-    "changed_state": 0,
-    "missed": 1025,
-    "n": 217061
+  "christian_near_dedupe": {
+    "date": "2026-09-19",
+    "match_m": 100.0,
+    "rule": "identical normalized name within 100m",
+    "clusters": 708,
+    "removed": 968,
+    "christian_before": 204297,
+    "christian_after": 203329
   }
 }
