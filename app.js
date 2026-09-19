@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v69";
+  const APP_VERSION = "v70";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -854,6 +854,15 @@
       const co = countyOk ? countyAtClick(ev.point) : null;
       const st = stateAtClick(ev.point);
 
+      /* Pins win over county/state toggle — otherwise a focused county
+         eats the first tap (toggle off) and the pin needs a second. */
+      if (pinOk) {
+        const place = placeAtClick(ev.point);
+        if (place) {
+          openSheet(place);
+          return;
+        }
+      }
       if (co && sameCounty(state.focusCounty, co)) {
         toggleFocusCounty(co);
         return;
@@ -861,13 +870,6 @@
       if (!co && st && state.focusState === st && !state.focusCounty) {
         toggleFocusState(st);
         return;
-      }
-      if (pinOk) {
-        const place = placeAtClick(ev.point);
-        if (place) {
-          openSheet(place);
-          return;
-        }
       }
       if (co) {
         toggleFocusCounty(co);
