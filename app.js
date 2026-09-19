@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v67";
+  const APP_VERSION = "v69";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -344,7 +344,10 @@
     const zMax = map.getMaxZoom();
     const t = Math.max(0, Math.min(1, (z - zMin) / Math.max(1e-6, zMax - zMin)));
     const ease = t * t * (3 - 2 * t);
-    const s = Math.max(1, Math.round((0.1 + (4 - 0.1) * ease) * dpr));
+    /* Once pins are tappable (z≥9), keep a finger-visible floor. */
+    const base = 0.1 + (5 - 0.1) * ease;
+    const cssPx = z >= 9 ? Math.max(4, base) : base;
+    const s = Math.max(1, Math.round(cssPx * dpr));
     const pad = s + 1;
     const b = map.getBounds();
     const west = b.getWest();
@@ -376,7 +379,8 @@
 
   function placeAtClick(point) {
     if (!state.map) return null;
-    const hit = state.focusState ? 6 : 10;
+    /* Touch-sized target; do not shrink when a state is focused. */
+    const hit = 24;
     let best = null;
     let bestD = hit * hit;
     const b = state.map.getBounds();
