@@ -20,7 +20,7 @@ SPOTS = {
     "index asset ?v=": (INDEX, r"\?v=(\d+)", "?v={n}"),
     "index EXPECTED": (INDEX, r'var EXPECTED = "v(\d+)"', 'var EXPECTED = "v{n}"'),
     "app APP_VERSION": (APP, r'const APP_VERSION = "v(\d+)"', 'const APP_VERSION = "v{n}"'),
-    "sw CACHE": (SW, r'const CACHE = "worship-v(\d+)"', 'const CACHE = "worship-v{n}"'),
+    "sw CACHE": (SW, r'const CACHE = "faithmap-v(\d+)"', 'const CACHE = "faithmap-v{n}"'),
     "sw precache ?v=": (SW, r"\?v=(\d+)", "?v={n}"),
     "css --wo-css": (CSS, r"--wo-css:\s*(\d+)", "--wo-css: {n}"),
 }

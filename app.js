@@ -1,8 +1,8 @@
-/* Worship — US houses of worship */
+/* FaithMap — US houses of worship */
 (function () {
   "use strict";
 
-  const APP_VERSION = "v1";
+  const APP_VERSION = "v23";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -12,13 +12,15 @@
   const MAP_TILE_ATTR =
     '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>';
 
+  const DOT_COLOR = "#ffd58a";
+
   const RELIGIONS = [
-    { id: "christian", label: "Christian", color: "#d7c4a3" },
-    { id: "jewish", label: "Jewish", color: "#7aa2ff" },
-    { id: "muslim", label: "Muslim", color: "#3dba7a" },
-    { id: "hindu", label: "Hindu", color: "#e07a3d" },
-    { id: "buddhist", label: "Buddhist", color: "#e0c25c" },
-    { id: "sikh", label: "Sikh", color: "#f08a1f" },
+    { id: "christian", label: "Christian", color: "#ffd58a" },
+    { id: "jewish", label: "Jewish", color: "#7eb6ff" },
+    { id: "muslim", label: "Muslim", color: "#3dffa3" },
+    { id: "hindu", label: "Hindu", color: "#ff7a3a" },
+    { id: "buddhist", label: "Buddhist", color: "#ffe566" },
+    { id: "sikh", label: "Sikh", color: "#ffb020" },
   ];
 
   const CONUS = [
@@ -61,15 +63,14 @@
   };
 
   const state = {
-    active: new Set(RELIGIONS.map((r) => r.id)),
+    active: new Set(["christian"]),
     places: [],
     meta: null,
     map: null,
-    index: null,
-    layer: null,
     totalsTimer: 0,
     frame: "us",
     selected: null,
+    canvas: null,
   };
 
   function fmt(n) {
@@ -87,15 +88,71 @@
     el.status.textContent = msg;
   }
 
-  function mapsUrl(lat, lon, name) {
-    const ll = lat + "," + lon;
+  function openInMaps(lat, lon, label) {
+    const la = Number(lat);
+    const lo = Number(lon);
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) return;
+    const name = (label || la + ", " + lo).trim();
+    const q = encodeURIComponent(name);
+    const ll = la + "," + lo;
+    const pinQ = encodeURIComponent(ll + " (" + name + ")");
+    const ua = navigator.userAgent || "";
     const isiOS =
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    if (isiOS) {
-      return "https://maps.apple.com/?ll=" + ll + "&q=" + encodeURIComponent(name || "Place");
+      /iPad|iPhone|iPod/i.test(ua) ||
+      (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1);
+    const isAndroid = /Android/i.test(ua);
+
+    if (isAndroid) {
+      window.location.href = "geo:" + la + "," + lo + "?q=" + pinQ;
+      return;
     }
-    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(ll);
+
+    if (isiOS) {
+      const gmaps = "comgooglemaps://?q=" + pinQ + "&zoom=16";
+      const apple = "maps://?ll=" + ll + "&q=" + q;
+      let handedOff = false;
+      let timer = 0;
+      function cleanup() {
+        document.removeEventListener("visibilitychange", onHide);
+        window.removeEventListener("pagehide", onHide);
+        window.removeEventListener("blur", onHide);
+        if (timer) {
+          window.clearTimeout(timer);
+          timer = 0;
+        }
+      }
+      function onHide() {
+        handedOff = true;
+        cleanup();
+      }
+      document.addEventListener("visibilitychange", onHide);
+      window.addEventListener("pagehide", onHide);
+      window.addEventListener("blur", onHide);
+      window.location.href = gmaps;
+      timer = window.setTimeout(function () {
+        cleanup();
+        if (handedOff || document.hidden || document.visibilityState === "hidden") {
+          return;
+        }
+        window.location.href = apple;
+      }, 2200);
+      return;
+    }
+
+    window.open(
+      "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(ll),
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
+
+  function chipDim(hex) {
+    const n = (hex || "").replace("#", "");
+    const r = parseInt(n.slice(0, 2), 16);
+    const g = parseInt(n.slice(2, 4), 16);
+    const b = parseInt(n.slice(4, 6), 16);
+    if (Number.isNaN(r)) return "rgba(232,168,56,0.2)";
+    return "rgba(" + r + "," + g + "," + b + ",0.2)";
   }
 
   function paintChips() {
@@ -108,6 +165,8 @@
         (on ? "true" : "false") +
         '" style="--chip:' +
         r.color +
+        ";--chip-dim:" +
+        chipDim(r.color) +
         '">' +
         r.label +
         "</button>"
@@ -115,89 +174,74 @@
     }).join("");
   }
 
-  function rebuildIndex() {
-    const features = [];
+  function render() {
+    if (!state.map || !state.canvas) return;
+    const map = state.map;
+    const canvas = state.canvas;
+    const size = map.getSize();
+    const dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
+    const topLeft = map.containerPointToLayerPoint([0, 0]);
+    const origin = L.point(Math.round(topLeft.x), Math.round(topLeft.y));
+    L.DomUtil.setPosition(canvas, origin);
+    canvas.width = Math.round(size.x * dpr);
+    canvas.height = Math.round(size.y * dpr);
+    canvas.style.width = size.x + "px";
+    canvas.style.height = size.y + "px";
+    const ctx = canvas.getContext("2d", { alpha: true });
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const z = map.getZoom();
+    const zMin = map.getMinZoom();
+    const zMax = map.getMaxZoom();
+    const t = Math.max(0, Math.min(1, (z - zMin) / Math.max(1e-6, zMax - zMin)));
+    const ease = t * t * (3 - 2 * t);
+    const s = Math.max(1, Math.round((0.8 + 3.2 * ease) * dpr));
+    const pad = s + 1;
+    const b = map.getBounds().pad(0.02);
+    const west = b.getWest();
+    const east = b.getEast();
+    const south = b.getSouth();
+    const north = b.getNorth();
+    const pixelOrigin = map.getPixelOrigin();
+    ctx.fillStyle = DOT_COLOR;
     for (let i = 0; i < state.places.length; i++) {
       const p = state.places[i];
       const rel = RELIGIONS[p.r];
       if (!rel || !state.active.has(rel.id)) continue;
-      features.push({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [p.o, p.a] },
-        properties: { i: i, r: p.r },
-      });
+      if (p.o < west || p.o > east || p.a < south || p.a > north) continue;
+      const proj = map.project(L.latLng(p.a, p.o), z);
+      const x = Math.round((proj.x - pixelOrigin.x - origin.x) * dpr);
+      const y = Math.round((proj.y - pixelOrigin.y - origin.y) * dpr);
+      if (x < -pad || y < -pad || x > canvas.width + pad || y > canvas.height + pad) continue;
+      ctx.fillRect(x, y, s, s);
     }
-    state.index = new Supercluster({
-      radius: 58,
-      maxZoom: 16,
-      minPoints: 3,
-      map: (props) => ({ r: props.r }),
-      reduce: (acc, props) => {
-        if (acc.r !== props.r) acc.r = -1;
-      },
-    });
-    state.index.load(features);
   }
 
-  function clusterColor(props) {
-    if (props.i != null) return RELIGIONS[state.places[props.i].r].color;
-    if (props.r >= 0 && RELIGIONS[props.r]) return RELIGIONS[props.r].color;
-    return "#c8b48a";
-  }
-
-  function render() {
-    if (!state.map || !state.index) return;
-    const z = state.map.getZoom();
-    const b = state.map.getBounds();
-    const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
-    const clusters = state.index.getClusters(bbox, Math.round(z));
-    if (state.layer) state.layer.remove();
-    state.layer = L.layerGroup();
-    for (const c of clusters) {
-      const [lon, lat] = c.geometry.coordinates;
-      const props = c.properties;
-      if (props.cluster) {
-        const n = props.point_count;
-        const size = n > 5000 ? 42 : n > 1000 ? 36 : n > 200 ? 30 : 24;
-        const icon = L.divIcon({
-          className: "",
-          html:
-            '<div class="wo-cluster" style="width:' +
-            size +
-            "px;height:" +
-            size +
-            "px;background:" +
-            clusterColor(props) +
-            ';font-size:' +
-            (size > 30 ? 11 : 10) +
-            'px">' +
-            (n > 999 ? Math.round(n / 1000) + "k" : n) +
-            "</div>",
-          iconSize: [size, size],
-        });
-        const m = L.marker([lat, lon], { icon: icon, keyboard: false });
-        m.on("click", () => {
-          const next = Math.min(state.index.getClusterExpansionZoom(props.cluster_id), 16);
-          state.map.setView([lat, lon], next);
-        });
-        state.layer.addLayer(m);
-      } else {
-        const place = state.places[props.i];
-        const color = RELIGIONS[place.r].color;
-        const icon = L.divIcon({
-          className: "",
-          html:
-            '<div class="wo-dot" style="width:12px;height:12px;background:' +
-            color +
-            '"></div>',
-          iconSize: [12, 12],
-        });
-        const m = L.marker([lat, lon], { icon: icon, keyboard: false });
-        m.on("click", () => openSheet(place));
-        state.layer.addLayer(m);
+  function placeAtClick(ev) {
+    if (!state.map) return null;
+    const hit = 10;
+    const origin = ev.containerPoint;
+    let best = null;
+    let bestD = hit * hit;
+    const b = state.map.getBounds().pad(0.02);
+    for (let i = 0; i < state.places.length; i++) {
+      const p = state.places[i];
+      const rel = RELIGIONS[p.r];
+      if (!rel || !state.active.has(rel.id)) continue;
+      if (p.o < b.getWest() || p.o > b.getEast() || p.a < b.getSouth() || p.a > b.getNorth())
+        continue;
+      const pt = state.map.latLngToContainerPoint([p.a, p.o]);
+      const dx = pt.x - origin.x;
+      const dy = pt.y - origin.y;
+      const d = dx * dx + dy * dy;
+      if (d < bestD) {
+        bestD = d;
+        best = p;
       }
     }
-    state.layer.addTo(state.map);
+    return best;
   }
 
   function openSheet(place) {
@@ -208,7 +252,12 @@
     el.sheetRel.style.color = rel ? rel.color : "";
     const bits = [place.y, place.c ? place.c + " County" : "", place.s].filter(Boolean);
     el.sheetWhere.textContent = bits.join(" · ");
-    el.sheetMaps.href = mapsUrl(place.a, place.o, place.n);
+    el.sheetMaps.href =
+      "https://www.google.com/maps/search/?api=1&query=" +
+      encodeURIComponent(place.a + "," + place.o);
+    el.sheetMaps.setAttribute("data-lat", String(place.a));
+    el.sheetMaps.setAttribute("data-lon", String(place.o));
+    el.sheetMaps.setAttribute("data-label", place.n || "");
     el.sheet.classList.remove("hidden");
     recount();
   }
@@ -331,24 +380,45 @@
       minZoom: 3,
       maxZoom: 18,
       worldCopyJump: false,
+      zoomAnimation: false,
+      markerZoomAnimation: false,
+      zoomSnap: 0,
     });
     L.tileLayer(MAP_TILE_URL, {
       attribution: MAP_TILE_ATTR,
       subdomains: "abcd",
       maxZoom: 19,
     }).addTo(state.map);
-    L.control.zoom({ position: "topleft" }).addTo(state.map);
+    const canvas = L.DomUtil.create("canvas", "wo-dots");
+    canvas.style.pointerEvents = "none";
+    canvas.style.zIndex = "500";
+    state.map.getPanes().overlayPane.appendChild(canvas);
+    state.canvas = canvas;
     fit(CONUS, "us");
-    state.map.on("moveend zoomend", () => {
-      render();
+    let renderRaf = 0;
+    function scheduleRender() {
+      if (renderRaf) return;
+      renderRaf = requestAnimationFrame(() => {
+        renderRaf = 0;
+        render();
+      });
+    }
+    state.map.on("move zoom", scheduleRender);
+    state.map.on("moveend zoomend viewreset", () => {
+      scheduleRender();
       scheduleTotals();
+    });
+    state.map.on("click", (ev) => {
+      const place = placeAtClick(ev);
+      if (place) openSheet(place);
+      else closeSheet();
     });
     window.addEventListener("resize", () => {
       setTimeout(() => {
         if (!state.map) return;
         state.map.invalidateSize();
         if (state.map.getZoom() <= 5) refit();
-        else render();
+        else scheduleRender();
       }, 200);
     });
     window.addEventListener("orientationchange", () => {
@@ -356,7 +426,7 @@
         if (!state.map) return;
         state.map.invalidateSize();
         if (state.map.getZoom() <= 5) refit();
-        else render();
+        else scheduleRender();
       }, 280);
     });
   }
@@ -367,21 +437,36 @@
       if (!btn) return;
       const id = btn.getAttribute("data-rel");
       if (state.active.has(id)) {
-        if (state.active.size === 1) return;
         state.active.delete(id);
       } else {
         state.active.add(id);
       }
+      if (state.selected) {
+        const rel = RELIGIONS[state.selected.r];
+        if (!rel || !state.active.has(rel.id)) closeSheet();
+      }
       paintChips();
-      rebuildIndex();
       render();
       recount();
     });
     el.sheetClose.addEventListener("click", closeSheet);
-    el.aboutBtn.addEventListener("click", () => {
-      el.about.classList.toggle("hidden");
+    el.sheetMaps.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openInMaps(
+        el.sheetMaps.getAttribute("data-lat"),
+        el.sheetMaps.getAttribute("data-lon"),
+        el.sheetMaps.getAttribute("data-label") || ""
+      );
     });
-    el.aboutClose.addEventListener("click", () => el.about.classList.add("hidden"));
+    el.aboutBtn.addEventListener("click", () => {
+      const hidden = el.about.classList.toggle("hidden");
+      el.aboutBtn.setAttribute("aria-expanded", hidden ? "false" : "true");
+    });
+    el.aboutClose.addEventListener("click", () => {
+      el.about.classList.add("hidden");
+      el.aboutBtn.setAttribute("aria-expanded", "false");
+    });
     el.btnUs.addEventListener("click", () => fit(CONUS, "us"));
     el.btnAk.addEventListener("click", () => fit(AK, "ak"));
     el.btnHi.addEventListener("click", () => fit(HI, "hi"));
@@ -389,6 +474,7 @@
       if (ev.key === "Escape") {
         closeSheet();
         el.about.classList.add("hidden");
+        el.aboutBtn.setAttribute("aria-expanded", "false");
       }
     });
   }
@@ -428,8 +514,8 @@
   }
 
   async function start() {
-    el.mapBadge.textContent = APP_VERSION;
-    el.verLabel.textContent = APP_VERSION;
+    if (el.mapBadge) el.mapBadge.textContent = APP_VERSION;
+    if (el.verLabel) el.verLabel.textContent = APP_VERSION;
     paintChips();
     wire();
     initMap();
@@ -439,11 +525,6 @@
       setStatus("No places file yet. Still building data.");
       return;
     }
-    if (!window.Supercluster) {
-      setStatus("Cluster library failed to load.");
-      return;
-    }
-    rebuildIndex();
     render();
     recount();
     setStatus("");

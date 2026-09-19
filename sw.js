@@ -1,6 +1,6 @@
-/* Worship — offline cache is production-only. Local HTTPS unregisters this. */
-const CACHE = "worship-v1";
-const PRECACHE = ["/", "/index.html?v=1", "/styles.css?v=1", "/app.js?v=1"];
+/* FaithMap — offline cache is production-only. Local HTTPS unregisters this. */
+const CACHE = "faithmap-v23";
+const PRECACHE = ["/", "/index.html?v=23", "/styles.css?v=23", "/app.js?v=23"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

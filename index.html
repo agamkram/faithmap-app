@@ -9,12 +9,12 @@
   <meta name="theme-color" content="#0e1116" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Worship" />
+  <meta name="apple-mobile-web-app-title" content="FaithMap" />
   <meta
     name="description"
     content="US map of houses of worship — Christian, Jewish, Muslim, Hindu, Buddhist, Sikh."
   />
-  <title>Worship — US houses of worship</title>
+  <title>FaithMap — US houses of worship</title>
   <!--
     iOS-full-bleed.txt Bug B: PWA uses fillH. Safari tab must NOT use VV
     offsetTop/Left. Safari: shell inset 0. Do not use max-height:100dvh on PWA.
@@ -50,8 +50,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=1" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=23" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=23" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -63,35 +63,42 @@
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     crossorigin=""
   />
-  <link rel="stylesheet" href="/styles.css?v=1" />
+  <link rel="stylesheet" href="/styles.css?v=23" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
   <div class="app" id="app">
-    <div class="chrome" id="chrome">
-      <header class="topbar">
-        <button type="button" class="brand" id="about-btn" aria-expanded="false" aria-controls="about">
-          <h1 class="brand-title">Worship</h1>
-        </button>
-        <span class="ver" id="ver-label">v1</span>
-      </header>
-      <section class="totals" aria-label="Totals">
-        <div class="tot">
-          <span class="k">US</span>
-          <span class="v" id="tot-us">—</span>
-        </div>
-        <div class="tot">
-          <span class="k" id="lab-state">State</span>
-          <span class="v" id="tot-state">—</span>
-        </div>
-        <div class="tot">
-          <span class="k" id="lab-county">County</span>
-          <span class="v" id="tot-county">—</span>
-        </div>
-      </section>
-      <nav class="chips" id="chips" aria-label="Religions"></nav>
-      <p class="source" id="source-line">Mapped 501(c)(3) buildings — not a census of congregations.</p>
-    </div>
+    <header class="topbar" id="chrome" role="banner">
+      <div class="topbar-title">
+        <h1 class="brand-title">FaithMap</h1>
+      </div>
+      <button
+        type="button"
+        class="brand-info"
+        id="about-btn"
+        aria-expanded="false"
+        aria-controls="about"
+        title="About"
+        aria-label="About"
+      >i</button>
+      <div class="topbar-chrome">
+        <section class="totals" aria-label="Totals">
+          <div class="tot">
+            <span class="k">US</span>
+            <span class="v" id="tot-us">—</span>
+          </div>
+          <div class="tot">
+            <span class="k" id="lab-state">State</span>
+            <span class="v" id="tot-state">—</span>
+          </div>
+          <div class="tot">
+            <span class="k" id="lab-county">County</span>
+            <span class="v" id="tot-county">—</span>
+          </div>
+        </section>
+        <nav class="chips" id="chips" aria-label="Religions"></nav>
+      </div>
+    </header>
 
     <main class="map-pane" id="main">
       <div id="map" class="map" role="application" aria-label="United States map"></div>
@@ -115,7 +122,7 @@
 
   <div class="about hidden" id="about" role="dialog" aria-modal="true" aria-labelledby="about-title">
     <button type="button" class="sheet-close" id="about-close" aria-label="Close">×</button>
-    <h2 id="about-title">Worship</h2>
+    <h2 id="about-title">FaithMap</h2>
     <p>
       Six religions on a US map. Dots are IRS-registered houses of worship
       geocoded by Homeland Infrastructure (HERE). County and state totals
@@ -126,13 +133,12 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="https://unpkg.com/supercluster@8.0.1/dist/supercluster.min.js"></script>
-  <script src="/app.js?v=1"></script>
+  <script src="/app.js?v=23"></script>
   <script>
     var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
       location.hostname
     );
-    var EXPECTED = "v1";
+    var EXPECTED = "v23";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)

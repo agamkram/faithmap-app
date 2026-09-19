@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serve Worship over HTTPS (and HTTP fallback) for Mac + phone LAN."""
+"""Serve FaithMap over HTTPS (and HTTP fallback) for Mac + phone LAN."""
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 import os
@@ -251,7 +251,7 @@ def main():
     ctx.load_cert_chain(certfile=str(CERT), keyfile=str(KEY))
     httpsd.socket = ctx.wrap_socket(httpsd.socket, server_side=True)
 
-    print("Worship", flush=True)
+    print("FaithMap", flush=True)
     print("  HTTP:   http://%s:%s/" % (lan_hint, HTTP_PORT), flush=True)
     print("  HTTPS:  https://%s:%s/" % (lan_hint, port), flush=True)
     if bonjour:

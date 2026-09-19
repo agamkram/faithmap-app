@@ -1,6 +1,6 @@
 {
-  "name": "Worship",
-  "short_name": "Worship",
+  "name": "FaithMap",
+  "short_name": "FaithMap",
   "description": "US map of houses of worship — Christian, Jewish, Muslim, Hindu, Buddhist, Sikh.",
   "start_url": "/",
   "display": "standalone",
