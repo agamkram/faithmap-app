@@ -1,12 +1,12 @@
 /* FaithMap service worker — production offline shell.
    Local HTTPS unregisters this (see index.html IS_LOCAL).
    Bump CACHE with APP_VERSION / ?v= via scripts/bump-version.py. */
-const CACHE = "faithmap-v75";
+const CACHE = "faithmap-v76";
 const PRECACHE = [
   "/",
-  "/index.html?v=75",
-  "/styles.css?v=75",
-  "/app.js?v=75",
+  "/index.html?v=76",
+  "/styles.css?v=76",
+  "/app.js?v=76",
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",

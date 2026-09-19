@@ -19,3 +19,6 @@ data/raw/
 data/.fetch-offset
 
 # USRC download cache
+
+# Local Python deps for scripts
+.pydeps/

@@ -281,6 +281,12 @@ def main() -> None:
     if rc != 0:
         raise RuntimeError("reconcile-mosques failed (%d)" % rc)
 
+    # OSM places-of-worship gap-fill for all six religions (add-only).
+    print("reconciling OSM worship gaps…", flush=True)
+    rc = subprocess.call([sys.executable, str(ROOT / "scripts" / "reconcile-osm-worship.py")])
+    if rc != 0:
+        raise RuntimeError("reconcile-osm-worship failed (%d)" % rc)
+
 
 if __name__ == "__main__":
     try:

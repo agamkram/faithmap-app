@@ -1,14 +1,14 @@
 {
   "built": "2026-09-19",
-  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285)",
-  "n": 216093,
+  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups)",
+  "n": 381591,
   "by": {
-    "christian": 203329,
-    "jewish": 6013,
-    "muslim": 2749,
-    "hindu": 1030,
-    "buddhist": 2698,
-    "sikh": 274
+    "christian": 366878,
+    "jewish": 7187,
+    "muslim": 2793,
+    "hindu": 1280,
+    "buddhist": 3120,
+    "sikh": 333
   },
   "skipped": 2,
   "unclassified": 38509,
@@ -80,5 +80,28 @@
     "removed": 968,
     "christian_before": 204297,
     "christian_after": 203329
+  },
+  "osm_worship_reconcile": {
+    "date": "2026-09-19",
+    "source": "Geofabrik gis_osm_pofw",
+    "added_before_dedupe": 167187,
+    "dedupe_removed": 1689,
+    "matched": 75434,
+    "gaps_by": {
+      "christian": 165199,
+      "jewish": 1196,
+      "buddhist": 427,
+      "hindu": 260,
+      "sikh": 61,
+      "muslim": 44
+    },
+    "match_m": 250.0,
+    "dedupe_m": 100.0
+  },
+  "county_assign": {
+    "changed_county": 165172,
+    "changed_state": 201,
+    "missed": 1373,
+    "n": 381591
   }
 }
