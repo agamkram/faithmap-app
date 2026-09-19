@@ -50,8 +50,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=41" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=41" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=63" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=63" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -62,7 +62,7 @@
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/styles.css?v=41" />
+  <link rel="stylesheet" href="/styles.css?v=63" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
@@ -83,16 +83,8 @@
       <div class="topbar-chrome">
         <section class="totals" aria-label="Totals">
           <div class="tot">
-            <span class="k">US</span>
-            <span class="v" id="tot-us">—</span>
-          </div>
-          <div class="tot">
-            <span class="k" id="lab-state">State</span>
-            <span class="v" id="tot-state">—</span>
-          </div>
-          <div class="tot">
-            <span class="k" id="lab-county">County</span>
-            <span class="v" id="tot-county">—</span>
+            <span class="k" id="tot-lab">US</span>
+            <span class="v" id="tot-val">—</span>
           </div>
         </section>
         <nav class="chips" id="chips" aria-label="Religions"></nav>
@@ -122,22 +114,28 @@
     <button type="button" class="sheet-close" id="about-close" aria-label="Close">×</button>
     <h2 id="about-title">FaithMap</h2>
     <p>
-      Two views. <strong>Mapped</strong> pins IRS-registered houses of worship
-      (HIFLD / HERE geocode) you can open in Maps.
-      <strong>Census</strong> uses 2020 U.S. Religion Census congregation counts —
-      no street addresses — and lays dots out using the mapped pattern so the
-      national picture looks similar. Those two numbers will not match.
+      Two views. <strong>Mapped</strong> shows IRS-registered houses of worship
+      with real map locations you can open in Maps.
+      <strong>Census</strong> keeps those same places and adds extra dots where
+      the 2020 U.S. Religion Census counted more congregations than we have on
+      the map. Those extras have no street address — they are placed near the
+      Mapped pattern in each county so the picture fills out. In Census view,
+      the total number follows the census count. Mapped places already above
+      that count in a county still stay on the map.
+    </p>
+    <p class="about-src">
+      Map: © OpenStreetMap contributors · © CARTO (Dark Matter)
     </p>
     <p class="about-src" id="about-src"></p>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="/app.js?v=41"></script>
+  <script src="/app.js?v=63"></script>
   <script>
     var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
       location.hostname
     );
-    var EXPECTED = "v41";
+    var EXPECTED = "v63";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)

@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v41";
+  const APP_VERSION = "v63";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -25,11 +25,8 @@
 
   const el = {
     chips: document.getElementById("chips"),
-    totUs: document.getElementById("tot-us"),
-    totState: document.getElementById("tot-state"),
-    totCounty: document.getElementById("tot-county"),
-    labState: document.getElementById("lab-state"),
-    labCounty: document.getElementById("lab-county"),
+    totLab: document.getElementById("tot-lab"),
+    totVal: document.getElementById("tot-val"),
     mapBadge: document.getElementById("map-badge"),
     verLabel: document.getElementById("ver-label"),
     status: document.getElementById("status"),
@@ -61,8 +58,41 @@
     map: null,
     totalsTimer: 0,
     selected: null,
+    focusState: null,
+    focusCounty: null,
+    outlineState: null,
+    outlineCounty: null,
+    outlineNation: false,
     canvas: null,
   };
+
+  function normCountyName(name) {
+    let s = String(name || "")
+      .toUpperCase()
+      .replace(/\./g, "")
+      .replace(/['’]/g, "")
+      .replace(/-/g, " ");
+    try {
+      s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    } catch (err) {
+      /* older engines */
+    }
+    s = s.replace(/\s+/g, " ").trim();
+    s = s.replace(/\s*\(CITY\)\s*$/g, "");
+    s = s.replace(/\s+CITY\s*$/g, "");
+    s = s.replace(/\s+COUNTY\s*$/g, "");
+    s = s.replace(/\s+PARISH\s*$/g, "");
+    s = s.replace(/\bDE\s+/g, "DE");
+    s = s.replace(/\bDU\s+/g, "DU");
+    s = s.replace(/\bLA\s+/g, "LA");
+    s = s.replace(/\bLE\s+/g, "LE");
+    s = s.replace(/\bST\s+/g, "ST");
+    return s.replace(/\s+/g, " ").trim();
+  }
+
+  function countyLookupKey(stAbbr, countyName) {
+    return String(stAbbr || "") + "|" + normCountyName(countyName);
+  }
 
   function fmt(n) {
     return Number(n || 0).toLocaleString("en-US");
@@ -152,10 +182,6 @@
     if (el.modeCensus) el.modeCensus.setAttribute("aria-pressed", mapped ? "false" : "true");
   }
 
-  function countyKey(stateAbbr, countyName) {
-    return String(stateAbbr || "") + "|" + String(countyName || "").toUpperCase();
-  }
-
   function hash01(str, i) {
     let h = 2166136261 >>> 0;
     const s = String(str);
@@ -188,18 +214,21 @@
     }
     const byCountyRel = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
     const byStateRel = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
+    const mappedCount = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
     for (let i = 0; i < state.mappedPlaces.length; i++) {
       const p = state.mappedPlaces[i];
       const r = p.r;
       if (r < 0 || r >= RELIGIONS.length) continue;
-      const ck = countyKey(p.s, p.c);
+      const ck = countyLookupKey(p.s, p.c);
       if (!byCountyRel[r][ck]) byCountyRel[r][ck] = [];
       byCountyRel[r][ck].push(p);
+      mappedCount[r][ck] = (mappedCount[r][ck] || 0) + 1;
       if (!byStateRel[r][p.s]) byStateRel[r][p.s] = [];
       byStateRel[r][p.s].push(p);
     }
 
-    const out = [];
+    // Keep every Mapped pin; only synthesize the census surplus per county × religion.
+    const out = state.mappedPlaces.slice();
     const counties = state.census.c || [];
     for (let ci = 0; ci < counties.length; ci++) {
       const key = counties[ci][0];
@@ -207,11 +236,19 @@
       const pipe = key.indexOf("|");
       const st = pipe >= 0 ? key.slice(0, pipe) : "";
       const cname = pipe >= 0 ? key.slice(pipe + 1) : key;
+      const ck = countyLookupKey(st, cname);
+      const pretty = String(cname || "")
+        .toLowerCase()
+        .replace(/\b[a-z]/g, function (ch) {
+          return ch.toUpperCase();
+        });
       for (let r = 0; r < RELIGIONS.length; r++) {
-        const n = counts[r] || 0;
-        if (n <= 0) continue;
-        const templates = byCountyRel[r][key] || byStateRel[r][st] || [];
-        for (let i = 0; i < n; i++) {
+        const need = counts[r] || 0;
+        const have = mappedCount[r][ck] || 0;
+        const extra = need - have;
+        if (extra <= 0) continue;
+        const templates = byCountyRel[r][ck] || byStateRel[r][st] || [];
+        for (let i = 0; i < extra; i++) {
           let lat = 39.8;
           let lon = -98.5;
           if (templates.length) {
@@ -219,18 +256,14 @@
             lat = t.a;
             lon = t.o;
           }
-          const j = jitterAround(lat, lon, key + ":" + r, i);
+          const j = jitterAround(lat, lon, ck + ":" + r + ":x", i);
           out.push({
             n: "Census congregation",
             r: r,
             a: j.a,
             o: j.o,
             s: st,
-            c: String(cname || "")
-              .toLowerCase()
-              .replace(/\b[a-z]/g, function (ch) {
-                return ch.toUpperCase();
-              }),
+            c: pretty,
             y: "",
             census: true,
           });
@@ -291,10 +324,14 @@
     const w = Math.max(1, Math.round(size.width));
     const h = Math.max(1, Math.round(size.height));
     const dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    canvas.style.width = w + "px";
-    canvas.style.height = h + "px";
+    const bw = Math.round(w * dpr);
+    const bh = Math.round(h * dpr);
+    if (canvas.width !== bw || canvas.height !== bh) {
+      canvas.width = bw;
+      canvas.height = bh;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+    }
     const ctx = canvas.getContext("2d", { alpha: true });
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
@@ -305,7 +342,7 @@
     const zMax = map.getMaxZoom();
     const t = Math.max(0, Math.min(1, (z - zMin) / Math.max(1e-6, zMax - zMin)));
     const ease = t * t * (3 - 2 * t);
-    const s = Math.max(1, Math.round((0.6 + 2.9 * ease) * dpr));
+    const s = Math.max(1, Math.round((0.1 + (4 - 0.1) * ease) * dpr));
     const pad = s + 1;
     const b = map.getBounds();
     const west = b.getWest();
@@ -337,7 +374,7 @@
 
   function placeAtClick(point) {
     if (!state.map) return null;
-    const hit = 10;
+    const hit = state.focusState ? 6 : 10;
     let best = null;
     let bestD = hit * hit;
     const b = state.map.getBounds();
@@ -350,7 +387,7 @@
       const pt = state.map.project([p.o, p.a]);
       const dx = pt.x - point.x;
       const dy = pt.y - point.y;
-      const d = dx * dx + dy * dy;
+      const d = dx * dx + dy * dy + (p.census ? 36 : 0);
       if (d < bestD) {
         bestD = d;
         best = p;
@@ -361,6 +398,10 @@
 
   function openSheet(place) {
     state.selected = place;
+    if (place && place.s) state.focusState = place.s;
+    if (place && place.s && place.c) {
+      state.focusCounty = { s: place.s, c: place.c, id: null };
+    }
     const rel = RELIGIONS[place.r];
     if (place.census) {
       el.sheetName.textContent = "Census placement";
@@ -423,7 +464,7 @@
         const pipe = key.indexOf("|");
         const stAbbr = pipe >= 0 ? key.slice(0, pipe) : "";
         const cname = pipe >= 0 ? key.slice(pipe + 1) : key;
-        byCounty[stAbbr + "|" + cname] = n;
+        byCounty[countyLookupKey(stAbbr, cname)] = n;
       }
     } else {
       for (const p of state.places) {
@@ -431,84 +472,92 @@
         us += 1;
         byState[p.s] = (byState[p.s] || 0) + 1;
         if (p.c) {
-          const key = p.s + "|" + String(p.c).toUpperCase();
-          byCounty[key] = (byCounty[key] || 0) + 1;
-        }
-      }
-    }
-    el.totUs.textContent = fmt(us);
-
-    let stateName = "State";
-    let stateCount = "—";
-    let countyName = "County";
-    let countyCount = "—";
-
-    if (state.selected) {
-      const p = state.selected;
-      stateName = p.s || "State";
-      stateCount = fmt(byState[p.s] || 0);
-      if (p.c) {
-        countyName = p.c;
-        const ck = p.s + "|" + String(p.c).toUpperCase();
-        countyCount = fmt(byCounty[ck] || 0);
-      }
-    } else if (state.map) {
-      const z = state.map.getZoom();
-      const b = state.map.getBounds();
-      const west = b.getWest();
-      const east = b.getEast();
-      const south = b.getSouth();
-      const north = b.getNorth();
-      const visState = Object.create(null);
-      const visCounty = Object.create(null);
-      for (const p of state.places) {
-        if (!activeIdx.has(p.r)) continue;
-        if (p.o < west || p.o > east || p.a < south || p.a > north) continue;
-        visState[p.s] = (visState[p.s] || 0) + 1;
-        if (p.c) {
-          const key = p.s + "|" + String(p.c).toUpperCase();
-          visCounty[key] = (visCounty[key] || 0) + 1;
-        }
-      }
-      if (z >= 5) {
-        let topS = null;
-        let topN = 0;
-        for (const k in visState) {
-          if (visState[k] > topN) {
-            topN = visState[k];
-            topS = k;
-          }
-        }
-        if (topS) {
-          stateName = topS;
-          stateCount = fmt(byState[topS] || visState[topS]);
-        }
-      }
-      if (z >= 7) {
-        let topC = null;
-        let topN = 0;
-        for (const k in visCounty) {
-          if (visCounty[k] > topN) {
-            topN = visCounty[k];
-            topC = k;
-          }
-        }
-        if (topC) {
-          const parts = topC.split("|");
-          countyName = parts[1]
-            .toLowerCase()
-            .replace(/\b[a-z]/g, function (ch) {
-              return ch.toUpperCase();
-            });
-          countyCount = fmt(byCounty[topC] || visCounty[topC]);
+          byCounty[countyLookupKey(p.s, p.c)] = (byCounty[countyLookupKey(p.s, p.c)] || 0) + 1;
         }
       }
     }
 
-    el.labState.textContent = stateName;
-    el.totState.textContent = stateCount;
-    el.labCounty.textContent = countyName;
-    el.totCounty.textContent = countyCount;
+    /* One total: pin/county tap → county, state tap → state, else US. */
+    let lab = "US";
+    let val = fmt(us);
+    if (state.selected && state.selected.c && state.selected.s) {
+      lab = state.selected.c;
+      val = fmt(byCounty[countyLookupKey(state.selected.s, state.selected.c)] || 0);
+    } else if (state.focusCounty && state.focusCounty.s && state.focusCounty.c) {
+      lab = state.focusCounty.c;
+      val = fmt(byCounty[countyLookupKey(state.focusCounty.s, state.focusCounty.c)] || 0);
+    } else if (state.focusState) {
+      lab = state.focusState;
+      val = fmt(byState[state.focusState] || 0);
+    }
+    if (el.totLab) el.totLab.textContent = lab;
+    if (el.totVal) el.totVal.textContent = val;
+    const atNation = !state.focusCounty && !state.focusState;
+    setCountyOutline(state.focusCounty);
+    setStateOutline(state.focusCounty ? null : state.focusState);
+    setNationOutline(atNation);
+  }
+
+  function setNationOutline(on) {
+    const next = !!on;
+    if (
+      next === state.outlineNation &&
+      state.map &&
+      state.map.getLayer("wo-nation-hl")
+    ) {
+      return;
+    }
+    state.outlineNation = next;
+    if (!state.map || !state.map.getLayer("wo-nation-hl")) return;
+    state.map.setLayoutProperty(
+      "wo-nation-hl",
+      "visibility",
+      next ? "visible" : "none"
+    );
+  }
+
+  function setStateOutline(abbr) {
+    const next = abbr && /^[A-Z]{2}$/.test(abbr) ? abbr : null;
+    if (
+      next === state.outlineState &&
+      state.map &&
+      state.map.getLayer("wo-state-hl")
+    ) {
+      return;
+    }
+    state.outlineState = next;
+    if (!state.map || !state.map.getLayer("wo-state-hl")) return;
+    state.map.setFilter(
+      "wo-state-hl",
+      next ? ["==", ["get", "s"], next] : ["==", ["get", "s"], "__none__"]
+    );
+  }
+
+  function setCountyOutline(co) {
+    const next = co && co.s && co.c ? co : null;
+    const sig = next ? (next.id || "") + "|" + next.s + "|" + normCountyName(next.c) : null;
+    if (
+      sig === state.outlineCounty &&
+      state.map &&
+      state.map.getLayer("wo-county-hl")
+    ) {
+      return;
+    }
+    state.outlineCounty = sig;
+    if (!state.map || !state.map.getLayer("wo-county-hl")) return;
+    let filter = ["==", ["get", "id"], "__none__"];
+    if (next) {
+      if (next.id) {
+        filter = ["==", ["get", "id"], String(next.id)];
+      } else {
+        filter = [
+          "all",
+          ["==", ["get", "s"], next.s],
+          ["==", ["downcase", ["get", "c"]], String(next.c).toLowerCase()],
+        ];
+      }
+    }
+    state.map.setFilter("wo-county-hl", filter);
   }
 
   function scheduleTotals() {
@@ -580,6 +629,16 @@
       data: "/geo/counties.geojson",
     });
     map.addLayer({
+      id: "wo-county-fill",
+      type: "fill",
+      source: "wo-counties",
+      minzoom: 5,
+      paint: {
+        "fill-color": "#000",
+        "fill-opacity": 0,
+      },
+    });
+    map.addLayer({
       id: "wo-counties-line",
       type: "line",
       source: "wo-counties",
@@ -594,6 +653,137 @@
         "line-width": 0.4,
       },
     });
+    map.addLayer({
+      id: "wo-county-hl",
+      type: "line",
+      source: "wo-counties",
+      filter: ["==", ["get", "id"], "__none__"],
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": "#3b82f6",
+        "line-opacity": 1,
+        "line-width": 1.8,
+      },
+    });
+  }
+
+  function addNationHighlight(map) {
+    if (!map || map.getSource("wo-usa")) return;
+    map.addSource("wo-usa", {
+      type: "geojson",
+      data: "/geo/usa.geojson",
+    });
+    map.addLayer({
+      id: "wo-nation-hl",
+      type: "line",
+      source: "wo-usa",
+      layout: {
+        visibility: "none",
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": "#3b82f6",
+        "line-opacity": 1,
+        "line-width": 1.8,
+      },
+    });
+  }
+
+  function addStateHighlight(map) {
+    if (!map || map.getSource("wo-states")) return;
+    map.addSource("wo-states", {
+      type: "geojson",
+      data: "/geo/states.geojson",
+    });
+    /* Invisible fill so taps can hit a state body, not just the outline. */
+    map.addLayer({
+      id: "wo-state-fill",
+      type: "fill",
+      source: "wo-states",
+      paint: {
+        "fill-color": "#000",
+        "fill-opacity": 0,
+      },
+    });
+    map.addLayer({
+      id: "wo-state-hl",
+      type: "line",
+      source: "wo-states",
+      filter: ["==", ["get", "s"], "__none__"],
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": "#3b82f6",
+        "line-opacity": 1,
+        "line-width": 1.8,
+      },
+    });
+  }
+
+  function stateAtClick(point) {
+    if (!state.map || !state.map.getLayer("wo-state-fill")) return null;
+    const hits = state.map.queryRenderedFeatures(point, {
+      layers: ["wo-state-fill"],
+    });
+    if (!hits.length) return null;
+    const abbr = hits[0].properties && hits[0].properties.s;
+    return abbr && /^[A-Z]{2}$/.test(abbr) ? abbr : null;
+  }
+
+  function countyAtClick(point) {
+    if (!state.map || !state.map.getLayer("wo-county-fill")) return null;
+    const hits = state.map.queryRenderedFeatures(point, {
+      layers: ["wo-county-fill"],
+    });
+    if (!hits.length) return null;
+    const pr = hits[0].properties || {};
+    if (!pr.s || !pr.c) return null;
+    return { id: pr.id ? String(pr.id) : null, s: pr.s, c: pr.c };
+  }
+
+  function sameCounty(a, b) {
+    if (!a || !b) return false;
+    if (a.id && b.id) return String(a.id) === String(b.id);
+    return a.s === b.s && normCountyName(a.c) === normCountyName(b.c);
+  }
+
+  function clearFocusToNation() {
+    state.focusCounty = null;
+    state.focusState = null;
+    closeSheet();
+  }
+
+  function toggleFocusState(abbr) {
+    if (state.focusState === abbr && !state.focusCounty) {
+      clearFocusToNation();
+      return;
+    }
+    state.focusCounty = null;
+    state.focusState = abbr;
+    if (state.selected && state.selected.s !== abbr) closeSheet();
+    else recount();
+  }
+
+  function toggleFocusCounty(co) {
+    if (sameCounty(state.focusCounty, co)) {
+      clearFocusToNation();
+      return;
+    }
+    state.focusCounty = co;
+    state.focusState = co.s;
+    if (
+      state.selected &&
+      (state.selected.s !== co.s ||
+        normCountyName(state.selected.c) !== normCountyName(co.c))
+    ) {
+      closeSheet();
+    } else recount();
   }
 
   async function initMap() {
@@ -607,7 +797,7 @@
       style: style,
       minZoom: 2,
       maxZoom: 18,
-      attributionControl: true,
+      attributionControl: false,
       fadeDuration: 0,
       dragRotate: false,
       pitchWithRotate: false,
@@ -618,6 +808,8 @@
     const canvas = document.createElement("canvas");
     canvas.className = "wo-dots";
     canvas.setAttribute("aria-hidden", "true");
+    /* Sibling overlay on the map container — reproject every map paint so
+       dots stay locked to the basemap (CSS-transform riding does not). */
     state.map.getContainer().appendChild(canvas);
     state.canvas = canvas;
 
@@ -629,37 +821,63 @@
     });
 
     addEarlyCountyLines(state.map);
+    addStateHighlight(state.map);
+    addNationHighlight(state.map);
+    if (state.outlineState) {
+      const cur = state.outlineState;
+      state.outlineState = null;
+      setStateOutline(cur);
+    }
+    if (state.focusCounty) {
+      const cur = state.focusCounty;
+      state.outlineCounty = null;
+      setCountyOutline(cur);
+    }
+    setNationOutline(!state.focusState && !state.focusCounty);
     fit(CONUS);
 
-    let renderRaf = 0;
-    function scheduleRender() {
-      if (renderRaf) return;
-      renderRaf = requestAnimationFrame(function () {
-        renderRaf = 0;
-        render();
-      });
-    }
-    state.map.on("move", scheduleRender);
-    state.map.on("zoom", scheduleRender);
-    state.map.on("moveend", function () {
-      scheduleRender();
-      scheduleTotals();
-    });
-    state.map.on("zoomend", function () {
-      scheduleRender();
-      scheduleTotals();
-    });
+    /* Draw in the same turn as MapLibre's paint — RAF here is what made
+       pins trail the basemap by a frame. */
+    state.map.on("render", render);
+    state.map.on("moveend", scheduleTotals);
+    state.map.on("zoomend", scheduleTotals);
     state.map.on("click", function (ev) {
-      const place = placeAtClick(ev.point);
-      if (place) openSheet(place);
-      else closeSheet();
+      const z = state.map.getZoom();
+      const countyOk = z >= 5;
+      const pinOk = z >= 7;
+      const co = countyOk ? countyAtClick(ev.point) : null;
+      const st = stateAtClick(ev.point);
+
+      if (co && sameCounty(state.focusCounty, co)) {
+        toggleFocusCounty(co);
+        return;
+      }
+      if (!co && st && state.focusState === st && !state.focusCounty) {
+        toggleFocusState(st);
+        return;
+      }
+      if (pinOk) {
+        const place = placeAtClick(ev.point);
+        if (place) {
+          openSheet(place);
+          return;
+        }
+      }
+      if (co) {
+        toggleFocusCounty(co);
+        return;
+      }
+      if (st) {
+        toggleFocusState(st);
+        return;
+      }
+      clearFocusToNation();
     });
     window.addEventListener("resize", function () {
       setTimeout(function () {
         if (!state.map) return;
         state.map.resize();
         if (state.map.getZoom() <= 5) refit();
-        else scheduleRender();
       }, 200);
     });
     window.addEventListener("orientationchange", function () {
@@ -667,7 +885,6 @@
         if (!state.map) return;
         state.map.resize();
         if (state.map.getZoom() <= 5) refit();
-        else scheduleRender();
       }, 280);
     });
   }
@@ -696,11 +913,24 @@
     if (el.modeCensus) {
       el.modeCensus.addEventListener("click", () => applyMode("census"));
     }
+    const tot = document.querySelector(".totals .tot");
+    if (tot) {
+      tot.style.cursor = "pointer";
+      tot.title = "US total";
+      tot.addEventListener("click", function () {
+        if (state.focusState || state.focusCounty || state.selected) {
+          clearFocusToNation();
+        } else {
+          refit();
+          recount();
+        }
+      });
+    }
     el.sheetClose.addEventListener("click", closeSheet);
     el.sheetMaps.addEventListener("click", (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      if (state.mode === "census") return;
+      if (state.selected && state.selected.census) return;
       openInMaps(
         el.sheetMaps.getAttribute("data-lat"),
         el.sheetMaps.getAttribute("data-lon"),

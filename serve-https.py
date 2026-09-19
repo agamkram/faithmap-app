@@ -59,8 +59,32 @@ class Handler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(data)
                 return
-        if path == "/geo/counties.geojson":
+        if (path == "/geo/counties.geojson"):
             gz = ROOT / "geo" / "counties.geojson.gz"
+            accept = self.headers.get("Accept-Encoding") or ""
+            if gz.exists() and "gzip" in accept:
+                data = gz.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Encoding", "gzip")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+                return
+        if path == "/geo/states.geojson":
+            gz = ROOT / "geo" / "states.geojson.gz"
+            accept = self.headers.get("Accept-Encoding") or ""
+            if gz.exists() and "gzip" in accept:
+                data = gz.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Encoding", "gzip")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+                return
+        if path == "/geo/usa.geojson":
+            gz = ROOT / "geo" / "usa.geojson.gz"
             accept = self.headers.get("Accept-Encoding") or ""
             if gz.exists() and "gzip" in accept:
                 data = gz.read_bytes()
