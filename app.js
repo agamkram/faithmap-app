@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v66";
+  const APP_VERSION = "v67";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -27,8 +27,6 @@
     chips: document.getElementById("chips"),
     totLab: document.getElementById("tot-lab"),
     totVal: document.getElementById("tot-val"),
-    mapBadge: document.getElementById("map-badge"),
-    verLabel: document.getElementById("ver-label"),
     status: document.getElementById("status"),
     sheet: document.getElementById("sheet"),
     sheetName: document.getElementById("sheet-name"),
@@ -1003,8 +1001,6 @@
   }
 
   async function start() {
-    if (el.mapBadge) el.mapBadge.textContent = APP_VERSION;
-    if (el.verLabel) el.verLabel.textContent = APP_VERSION;
     paintChips();
     paintMode();
     wire();

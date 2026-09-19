@@ -67,8 +67,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=66" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=66" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=67" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=67" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -79,7 +79,7 @@
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/styles.css?v=66" />
+  <link rel="stylesheet" href="/styles.css?v=67" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
@@ -114,7 +114,6 @@
 
     <main class="map-pane" id="main">
       <div id="map" class="map" role="application" aria-label="United States map"></div>
-      <div class="map-badge" id="map-badge">v1</div>
       <div class="status" id="status">Loading map…</div>
     </main>
   </div>
@@ -146,12 +145,12 @@
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="/app.js?v=66"></script>
+  <script src="/app.js?v=67"></script>
   <script>
     var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
       location.hostname
     );
-    var EXPECTED = "v66";
+    var EXPECTED = "v67";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)

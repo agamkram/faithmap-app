@@ -17,7 +17,7 @@
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
-  --wo-css: 66;
+  --wo-css: 67;
   --pwa-fill-h: 100%;
   --pwa-extra-b: 0px;
   --christian: #ffd58a;
@@ -331,21 +331,6 @@ html.pwa-standalone .app {
   position: absolute;
   inset: 0;
   background: var(--bg-panel);
-}
-
-.map-badge {
-  position: absolute;
-  z-index: 500;
-  left: max(8px, var(--safe-l));
-  bottom: max(8px, var(--safe-b));
-  font-family: var(--mono);
-  font-size: 11px;
-  color: #d7c4a3;
-  background: rgba(14, 17, 22, 0.82);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 3px 7px;
-  pointer-events: none;
 }
 
 .status {
