@@ -1,6 +1,6 @@
 /* FaithMap — offline cache is production-only. Local HTTPS unregisters this. */
-const CACHE = "faithmap-v39";
-const PRECACHE = ["/", "/index.html?v=39", "/styles.css?v=39", "/app.js?v=39"];
+const CACHE = "faithmap-v41";
+const PRECACHE = ["/", "/index.html?v=41", "/styles.css?v=41", "/app.js?v=41"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

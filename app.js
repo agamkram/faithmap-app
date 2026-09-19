@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v39";
+  const APP_VERSION = "v41";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -44,12 +44,20 @@
     aboutClose: document.getElementById("about-close"),
     aboutSrc: document.getElementById("about-src"),
     sourceLine: document.getElementById("source-line"),
+    modeMapped: document.getElementById("mode-mapped"),
+    modeCensus: document.getElementById("mode-census"),
   };
 
   const state = {
     active: new Set(["christian"]),
+    mode: "mapped",
+    mappedPlaces: [],
+    censusPlaces: [],
     places: [],
     meta: null,
+    census: null,
+    censusByCounty: null,
+    censusByState: null,
     map: null,
     totalsTimer: 0,
     selected: null,
@@ -136,6 +144,124 @@
     const b = parseInt(n.slice(4, 6), 16);
     if (Number.isNaN(r)) return "rgba(232,168,56,0.2)";
     return "rgba(" + r + "," + g + "," + b + ",0.2)";
+  }
+
+  function paintMode() {
+    const mapped = state.mode === "mapped";
+    if (el.modeMapped) el.modeMapped.setAttribute("aria-pressed", mapped ? "true" : "false");
+    if (el.modeCensus) el.modeCensus.setAttribute("aria-pressed", mapped ? "false" : "true");
+  }
+
+  function countyKey(stateAbbr, countyName) {
+    return String(stateAbbr || "") + "|" + String(countyName || "").toUpperCase();
+  }
+
+  function hash01(str, i) {
+    let h = 2166136261 >>> 0;
+    const s = String(str);
+    for (let k = 0; k < s.length; k++) {
+      h ^= s.charCodeAt(k);
+      h = Math.imul(h, 16777619);
+    }
+    h ^= (i + 0x9e3779b9) >>> 0;
+    h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+
+  function jitterAround(lat, lon, key, i) {
+    const u = hash01(key, i);
+    const v = hash01(key, i + 7919);
+    const ang = u * Math.PI * 2;
+    const dist = 0.01 + v * 0.045;
+    const cos = Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+    return {
+      a: lat + Math.sin(ang) * dist,
+      o: lon + (Math.cos(ang) * dist) / cos,
+    };
+  }
+
+  function buildCensusPlaces() {
+    if (!state.census || !state.mappedPlaces.length) {
+      state.censusPlaces = [];
+      return;
+    }
+    const byCountyRel = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
+    const byStateRel = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
+    for (let i = 0; i < state.mappedPlaces.length; i++) {
+      const p = state.mappedPlaces[i];
+      const r = p.r;
+      if (r < 0 || r >= RELIGIONS.length) continue;
+      const ck = countyKey(p.s, p.c);
+      if (!byCountyRel[r][ck]) byCountyRel[r][ck] = [];
+      byCountyRel[r][ck].push(p);
+      if (!byStateRel[r][p.s]) byStateRel[r][p.s] = [];
+      byStateRel[r][p.s].push(p);
+    }
+
+    const out = [];
+    const counties = state.census.c || [];
+    for (let ci = 0; ci < counties.length; ci++) {
+      const key = counties[ci][0];
+      const counts = counties[ci][1];
+      const pipe = key.indexOf("|");
+      const st = pipe >= 0 ? key.slice(0, pipe) : "";
+      const cname = pipe >= 0 ? key.slice(pipe + 1) : key;
+      for (let r = 0; r < RELIGIONS.length; r++) {
+        const n = counts[r] || 0;
+        if (n <= 0) continue;
+        const templates = byCountyRel[r][key] || byStateRel[r][st] || [];
+        for (let i = 0; i < n; i++) {
+          let lat = 39.8;
+          let lon = -98.5;
+          if (templates.length) {
+            const t = templates[i % templates.length];
+            lat = t.a;
+            lon = t.o;
+          }
+          const j = jitterAround(lat, lon, key + ":" + r, i);
+          out.push({
+            n: "Census congregation",
+            r: r,
+            a: j.a,
+            o: j.o,
+            s: st,
+            c: String(cname || "")
+              .toLowerCase()
+              .replace(/\b[a-z]/g, function (ch) {
+                return ch.toUpperCase();
+              }),
+            y: "",
+            census: true,
+          });
+        }
+      }
+    }
+    state.censusPlaces = out;
+  }
+
+  function applyMode(mode) {
+    const next = mode === "census" ? "census" : "mapped";
+    if (next === "census" && state.census && !state.censusPlaces.length) {
+      setStatus("Building census dots…");
+      window.setTimeout(function () {
+        buildCensusPlaces();
+        state.mode = "census";
+        state.places = state.censusPlaces;
+        closeSheet();
+        paintMode();
+        render();
+        recount();
+        setStatus("");
+      }, 30);
+      return;
+    }
+    state.mode = next;
+    state.places = state.mode === "census" ? state.censusPlaces : state.mappedPlaces;
+    closeSheet();
+    paintMode();
+    render();
+    recount();
   }
 
   function paintChips() {
@@ -236,17 +362,29 @@
   function openSheet(place) {
     state.selected = place;
     const rel = RELIGIONS[place.r];
-    el.sheetName.textContent = place.n || "Unnamed";
-    el.sheetRel.textContent = rel ? rel.label : "";
-    el.sheetRel.style.color = rel ? rel.color : "";
-    const bits = [place.y, place.c ? place.c + " County" : "", place.s].filter(Boolean);
-    el.sheetWhere.textContent = bits.join(" · ");
-    el.sheetMaps.href =
-      "https://www.google.com/maps/search/?api=1&query=" +
-      encodeURIComponent(place.a + "," + place.o);
-    el.sheetMaps.setAttribute("data-lat", String(place.a));
-    el.sheetMaps.setAttribute("data-lon", String(place.o));
-    el.sheetMaps.setAttribute("data-label", place.n || "");
+    if (place.census) {
+      el.sheetName.textContent = "Census placement";
+      el.sheetRel.textContent = rel ? rel.label : "";
+      el.sheetRel.style.color = rel ? rel.color : "";
+      el.sheetWhere.textContent =
+        (place.c ? place.c + " County" : "County") +
+        (place.s ? " · " + place.s : "") +
+        " · not a street address";
+      el.sheetMaps.classList.add("hidden");
+    } else {
+      el.sheetName.textContent = place.n || "Unnamed";
+      el.sheetRel.textContent = rel ? rel.label : "";
+      el.sheetRel.style.color = rel ? rel.color : "";
+      const bits = [place.y, place.c ? place.c + " County" : "", place.s].filter(Boolean);
+      el.sheetWhere.textContent = bits.join(" · ");
+      el.sheetMaps.classList.remove("hidden");
+      el.sheetMaps.href =
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent(place.a + "," + place.o);
+      el.sheetMaps.setAttribute("data-lat", String(place.a));
+      el.sheetMaps.setAttribute("data-lon", String(place.o));
+      el.sheetMaps.setAttribute("data-label", place.n || "");
+    }
     el.sheet.classList.remove("hidden");
     recount();
   }
@@ -265,13 +403,37 @@
     let us = 0;
     const byState = Object.create(null);
     const byCounty = Object.create(null);
-    for (const p of state.places) {
-      if (!activeIdx.has(p.r)) continue;
-      us += 1;
-      byState[p.s] = (byState[p.s] || 0) + 1;
-      if (p.c) {
-        const key = p.s + "|" + p.c;
-        byCounty[key] = (byCounty[key] || 0) + 1;
+
+    if (state.mode === "census" && state.census) {
+      const usArr = state.census.us || [];
+      for (const i of activeIdx) us += usArr[i] || 0;
+      const st = state.census.s || {};
+      for (const abbr in st) {
+        let n = 0;
+        for (const i of activeIdx) n += st[abbr][i] || 0;
+        if (n) byState[abbr] = n;
+      }
+      const counties = state.census.c || [];
+      for (let ci = 0; ci < counties.length; ci++) {
+        const key = counties[ci][0];
+        const vals = counties[ci][1];
+        let n = 0;
+        for (const i of activeIdx) n += vals[i] || 0;
+        if (!n) continue;
+        const pipe = key.indexOf("|");
+        const stAbbr = pipe >= 0 ? key.slice(0, pipe) : "";
+        const cname = pipe >= 0 ? key.slice(pipe + 1) : key;
+        byCounty[stAbbr + "|" + cname] = n;
+      }
+    } else {
+      for (const p of state.places) {
+        if (!activeIdx.has(p.r)) continue;
+        us += 1;
+        byState[p.s] = (byState[p.s] || 0) + 1;
+        if (p.c) {
+          const key = p.s + "|" + String(p.c).toUpperCase();
+          byCounty[key] = (byCounty[key] || 0) + 1;
+        }
       }
     }
     el.totUs.textContent = fmt(us);
@@ -287,7 +449,8 @@
       stateCount = fmt(byState[p.s] || 0);
       if (p.c) {
         countyName = p.c;
-        countyCount = fmt(byCounty[p.s + "|" + p.c] || 0);
+        const ck = p.s + "|" + String(p.c).toUpperCase();
+        countyCount = fmt(byCounty[ck] || 0);
       }
     } else if (state.map) {
       const z = state.map.getZoom();
@@ -303,7 +466,7 @@
         if (p.o < west || p.o > east || p.a < south || p.a > north) continue;
         visState[p.s] = (visState[p.s] || 0) + 1;
         if (p.c) {
-          const key = p.s + "|" + p.c;
+          const key = p.s + "|" + String(p.c).toUpperCase();
           visCounty[key] = (visCounty[key] || 0) + 1;
         }
       }
@@ -332,7 +495,11 @@
         }
         if (topC) {
           const parts = topC.split("|");
-          countyName = parts[1];
+          countyName = parts[1]
+            .toLowerCase()
+            .replace(/\b[a-z]/g, function (ch) {
+              return ch.toUpperCase();
+            });
           countyCount = fmt(byCounty[topC] || visCounty[topC]);
         }
       }
@@ -523,10 +690,17 @@
       render();
       recount();
     });
+    if (el.modeMapped) {
+      el.modeMapped.addEventListener("click", () => applyMode("mapped"));
+    }
+    if (el.modeCensus) {
+      el.modeCensus.addEventListener("click", () => applyMode("census"));
+    }
     el.sheetClose.addEventListener("click", closeSheet);
     el.sheetMaps.addEventListener("click", (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
+      if (state.mode === "census") return;
       openInMaps(
         el.sheetMaps.getAttribute("data-lat"),
         el.sheetMaps.getAttribute("data-lon"),
@@ -556,7 +730,7 @@
     if (!res.ok) throw new Error("data " + res.status);
     const payload = await res.json();
     state.meta = payload.meta || {};
-    state.places = (payload.p || []).map((row) => {
+    state.mappedPlaces = (payload.p || []).map((row) => {
       if (Array.isArray(row)) {
         return {
           n: row[0],
@@ -570,24 +744,35 @@
       }
       return row;
     });
+    state.places = state.mappedPlaces;
+
+    try {
+      const cres = await fetch("/data/census.json?v=1", { cache: "no-store" });
+      if (cres.ok) {
+        state.census = await cres.json();
+      }
+    } catch (err) {
+      console.warn("census load failed", err);
+    }
+
     if (el.aboutSrc) {
-      el.aboutSrc.textContent =
-        (state.meta.source || "") +
-        (state.meta.built ? " · built " + state.meta.built : "") +
-        " · " +
-        fmt(state.meta.n || state.places.length) +
-        " mapped buildings";
+      const bits = [];
+      if (state.meta.source) bits.push(state.meta.source);
+      if (state.meta.built) bits.push("built " + state.meta.built);
+      bits.push(fmt(state.meta.n || state.mappedPlaces.length) + " mapped");
+      if (state.census && state.census.us) {
+        bits.push(fmt(state.census.us.reduce(function (a, b) { return a + b; }, 0)) + " census");
+      }
+      el.aboutSrc.textContent = bits.join(" · ");
     }
-    if (el.sourceLine && state.meta.n) {
-      el.sourceLine.textContent =
-        fmt(state.meta.n) + " mapped 501(c)(3) buildings — not a census of congregations.";
-    }
+    paintMode();
   }
 
   async function start() {
     if (el.mapBadge) el.mapBadge.textContent = APP_VERSION;
     if (el.verLabel) el.verLabel.textContent = APP_VERSION;
     paintChips();
+    paintMode();
     wire();
     try {
       await initMap();

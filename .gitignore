@@ -17,3 +17,5 @@ __pycache__/
 # Resume cache for the HIFLD pull
 data/raw/
 data/.fetch-offset
+
+# USRC download cache

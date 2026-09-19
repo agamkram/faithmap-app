@@ -50,8 +50,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=39" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=39" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=41" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=41" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -62,7 +62,7 @@
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/styles.css?v=39" />
+  <link rel="stylesheet" href="/styles.css?v=41" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
@@ -96,6 +96,10 @@
           </div>
         </section>
         <nav class="chips" id="chips" aria-label="Religions"></nav>
+        <div class="mode-toggle" role="group" aria-label="Data mode">
+          <button type="button" class="mode-btn" id="mode-mapped" aria-pressed="true">Mapped</button>
+          <button type="button" class="mode-btn" id="mode-census" aria-pressed="false">Census</button>
+        </div>
       </div>
     </header>
 
@@ -118,21 +122,22 @@
     <button type="button" class="sheet-close" id="about-close" aria-label="Close">×</button>
     <h2 id="about-title">FaithMap</h2>
     <p>
-      Six religions on a US map. Dots are IRS-registered houses of worship
-      geocoded by Homeland Infrastructure (HERE). County and state totals
-      follow those dots. The Religion Census counts congregations we cannot
-      always pin — those two numbers will not match.
+      Two views. <strong>Mapped</strong> pins IRS-registered houses of worship
+      (HIFLD / HERE geocode) you can open in Maps.
+      <strong>Census</strong> uses 2020 U.S. Religion Census congregation counts —
+      no street addresses — and lays dots out using the mapped pattern so the
+      national picture looks similar. Those two numbers will not match.
     </p>
     <p class="about-src" id="about-src"></p>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="/app.js?v=39"></script>
+  <script src="/app.js?v=41"></script>
   <script>
     var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
       location.hostname
     );
-    var EXPECTED = "v39";
+    var EXPECTED = "v41";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)
