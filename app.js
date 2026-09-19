@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v23";
+  const APP_VERSION = "v31";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -11,8 +11,6 @@
     (CARTO_KEY ? "?key=" + encodeURIComponent(CARTO_KEY) : "");
   const MAP_TILE_ATTR =
     '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>';
-
-  const DOT_COLOR = "#ffd58a";
 
   const RELIGIONS = [
     { id: "christian", label: "Christian", color: "#ffd58a" },
@@ -26,14 +24,6 @@
   const CONUS = [
     [24.5, -124.8],
     [49.4, -66.9],
-  ];
-  const AK = [
-    [51.2, -179.1],
-    [71.4, -129.9],
-  ];
-  const HI = [
-    [18.9, -160.3],
-    [22.3, -154.8],
   ];
 
   const el = {
@@ -57,9 +47,6 @@
     aboutClose: document.getElementById("about-close"),
     aboutSrc: document.getElementById("about-src"),
     sourceLine: document.getElementById("source-line"),
-    btnUs: document.getElementById("btn-us"),
-    btnAk: document.getElementById("btn-ak"),
-    btnHi: document.getElementById("btn-hi"),
   };
 
   const state = {
@@ -68,7 +55,6 @@
     meta: null,
     map: null,
     totalsTimer: 0,
-    frame: "us",
     selected: null,
     canvas: null,
   };
@@ -197,7 +183,7 @@
     const zMax = map.getMaxZoom();
     const t = Math.max(0, Math.min(1, (z - zMin) / Math.max(1e-6, zMax - zMin)));
     const ease = t * t * (3 - 2 * t);
-    const s = Math.max(1, Math.round((0.8 + 3.2 * ease) * dpr));
+    const s = Math.max(1, Math.round((0.6 + 2.9 * ease) * dpr));
     const pad = s + 1;
     const b = map.getBounds().pad(0.02);
     const west = b.getWest();
@@ -205,17 +191,26 @@
     const south = b.getSouth();
     const north = b.getNorth();
     const pixelOrigin = map.getPixelOrigin();
-    ctx.fillStyle = DOT_COLOR;
+    const buckets = [[], [], [], [], [], []];
     for (let i = 0; i < state.places.length; i++) {
       const p = state.places[i];
       const rel = RELIGIONS[p.r];
       if (!rel || !state.active.has(rel.id)) continue;
       if (p.o < west || p.o > east || p.a < south || p.a > north) continue;
-      const proj = map.project(L.latLng(p.a, p.o), z);
-      const x = Math.round((proj.x - pixelOrigin.x - origin.x) * dpr);
-      const y = Math.round((proj.y - pixelOrigin.y - origin.y) * dpr);
-      if (x < -pad || y < -pad || x > canvas.width + pad || y > canvas.height + pad) continue;
-      ctx.fillRect(x, y, s, s);
+      buckets[p.r].push(p);
+    }
+    for (let r = 0; r < RELIGIONS.length; r++) {
+      const pts = buckets[r];
+      if (!pts.length) continue;
+      ctx.fillStyle = RELIGIONS[r].color;
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        const proj = map.project(L.latLng(p.a, p.o), z);
+        const x = Math.round((proj.x - pixelOrigin.x - origin.x) * dpr);
+        const y = Math.round((proj.y - pixelOrigin.y - origin.y) * dpr);
+        if (x < -pad || y < -pad || x > canvas.width + pad || y > canvas.height + pad) continue;
+        ctx.fillRect(x, y, s, s);
+      }
     }
   }
 
@@ -360,17 +355,14 @@
     state.totalsTimer = setTimeout(recount, 120);
   }
 
-  function fit(bounds, frame) {
+  function fit(bounds) {
     if (!state.map) return;
-    if (frame) state.frame = frame;
     state.map.invalidateSize();
     state.map.fitBounds(bounds, { padding: [20, 20], animate: false });
   }
 
   function refit() {
-    if (state.frame === "ak") fit(AK);
-    else if (state.frame === "hi") fit(HI);
-    else fit(CONUS);
+    fit(CONUS);
   }
 
   function initMap() {
@@ -394,7 +386,7 @@
     canvas.style.zIndex = "500";
     state.map.getPanes().overlayPane.appendChild(canvas);
     state.canvas = canvas;
-    fit(CONUS, "us");
+    fit(CONUS);
     let renderRaf = 0;
     function scheduleRender() {
       if (renderRaf) return;
@@ -467,9 +459,6 @@
       el.about.classList.add("hidden");
       el.aboutBtn.setAttribute("aria-expanded", "false");
     });
-    el.btnUs.addEventListener("click", () => fit(CONUS, "us"));
-    el.btnAk.addEventListener("click", () => fit(AK, "ak"));
-    el.btnHi.addEventListener("click", () => fit(HI, "hi"));
     document.addEventListener("keydown", (ev) => {
       if (ev.key === "Escape") {
         closeSheet();

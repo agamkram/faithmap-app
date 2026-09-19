@@ -50,8 +50,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=23" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=23" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=31" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=31" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -63,7 +63,7 @@
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     crossorigin=""
   />
-  <link rel="stylesheet" href="/styles.css?v=23" />
+  <link rel="stylesheet" href="/styles.css?v=31" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
@@ -103,11 +103,6 @@
     <main class="map-pane" id="main">
       <div id="map" class="map" role="application" aria-label="United States map"></div>
       <div class="map-badge" id="map-badge">v1</div>
-      <div class="map-btns" role="group" aria-label="Frame the map">
-        <button type="button" class="map-btn" id="btn-us">US</button>
-        <button type="button" class="map-btn" id="btn-ak">AK</button>
-        <button type="button" class="map-btn" id="btn-hi">HI</button>
-      </div>
       <div class="status" id="status">Loading map…</div>
     </main>
   </div>
@@ -133,12 +128,12 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="/app.js?v=23"></script>
+  <script src="/app.js?v=31"></script>
   <script>
     var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
       location.hostname
     );
-    var EXPECTED = "v23";
+    var EXPECTED = "v31";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)
