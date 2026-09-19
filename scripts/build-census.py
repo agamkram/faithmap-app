@@ -190,7 +190,7 @@ def main() -> int:
             "k": REL_IDS,
             "us": us,
             "counties": len(counties),
-            "note": "No addresses. Census mode places dots via HIFLD spatial template.",
+            "note": "No addresses. Census mode draws exactly need pins per county × religion (Mapped first, then synthetic).",
         },
         "us": us,
         "s": states,

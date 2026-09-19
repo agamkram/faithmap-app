@@ -53,5 +53,11 @@
     "GREEN ACRE BAHAI SCHOOL",
     "BAHAIS OF ORONO TOWN",
     "ALLIANCE OF DIVINE LOVE INC"
-  ]
+  ],
+  "county_assign": {
+    "changed_county": 58891,
+    "changed_state": 77,
+    "missed": 1028,
+    "n": 216231
+  }
 }

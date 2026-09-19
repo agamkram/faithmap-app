@@ -67,8 +67,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=64" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=64" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=65" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=65" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -79,7 +79,7 @@
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/styles.css?v=64" />
+  <link rel="stylesheet" href="/styles.css?v=65" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
@@ -133,12 +133,11 @@
     <p>
       Two views. <strong>Mapped</strong> shows IRS-registered houses of worship
       with real map locations you can open in Maps.
-      <strong>Census</strong> keeps those same places and adds extra dots where
-      the 2020 U.S. Religion Census counted more congregations than we have on
-      the map. Those extras have no street address — they are placed near the
-      Mapped pattern in each county so the picture fills out. In Census view,
-      the total number follows the census count. Mapped places already above
-      that count in a county still stay on the map.
+      <strong>Census</strong> shows exactly the 2020 U.S. Religion Census
+      congregation count for each county and religion: real Mapped places first,
+      then anonymous dots for any shortfall. Those extras have no street address.
+      Where Mapped has more places than the census counted, the extras stay in
+      Mapped view only — so in Census view the pin count matches the total.
     </p>
     <p class="about-src">
       Map: © OpenStreetMap contributors · © CARTO (Dark Matter)
@@ -147,12 +146,12 @@
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="/app.js?v=64"></script>
+  <script src="/app.js?v=65"></script>
   <script>
     var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
       location.hostname
     );
-    var EXPECTED = "v64";
+    var EXPECTED = "v65";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)

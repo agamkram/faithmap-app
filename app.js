@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v64";
+  const APP_VERSION = "v65";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -214,7 +214,6 @@
     }
     const byCountyRel = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
     const byStateRel = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
-    const mappedCount = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
     for (let i = 0; i < state.mappedPlaces.length; i++) {
       const p = state.mappedPlaces[i];
       const r = p.r;
@@ -222,13 +221,13 @@
       const ck = countyLookupKey(p.s, p.c);
       if (!byCountyRel[r][ck]) byCountyRel[r][ck] = [];
       byCountyRel[r][ck].push(p);
-      mappedCount[r][ck] = (mappedCount[r][ck] || 0) + 1;
       if (!byStateRel[r][p.s]) byStateRel[r][p.s] = [];
       byStateRel[r][p.s].push(p);
     }
 
-    // Keep every Mapped pin; only synthesize the census surplus per county × religion.
-    const out = state.mappedPlaces.slice();
+    // Exactly `need` pins per county × religion: real Mapped first, then synthetics.
+    // Excess Mapped pins are omitted in Census mode so pin count matches the badge.
+    const out = [];
     const counties = state.census.c || [];
     for (let ci = 0; ci < counties.length; ci++) {
       const key = counties[ci][0];
@@ -244,10 +243,15 @@
         });
       for (let r = 0; r < RELIGIONS.length; r++) {
         const need = counts[r] || 0;
-        const have = mappedCount[r][ck] || 0;
-        const extra = need - have;
+        if (need <= 0) continue;
+        const candidates = byCountyRel[r][ck] || [];
+        const take = Math.min(need, candidates.length);
+        for (let i = 0; i < take; i++) out.push(candidates[i]);
+        const extra = need - take;
         if (extra <= 0) continue;
-        const templates = byCountyRel[r][ck] || byStateRel[r][st] || [];
+        const templates = candidates.length
+          ? candidates
+          : byStateRel[r][st] || [];
         for (let i = 0; i < extra; i++) {
           let lat = 39.8;
           let lon = -98.5;

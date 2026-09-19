@@ -267,6 +267,12 @@ def main() -> None:
     size = OUT.stat().st_size
     gz_size = gz_path.stat().st_size
     print("  file %.1f MB  gzip %.1f MB" % (size / 1e6, gz_size / 1e6), flush=True)
+    print("assigning counties from polygons…", flush=True)
+    import subprocess
+
+    rc = subprocess.call([sys.executable, str(ROOT / "scripts" / "assign-counties.py")])
+    if rc != 0:
+        raise RuntimeError("assign-counties failed (%d)" % rc)
 
 
 if __name__ == "__main__":
