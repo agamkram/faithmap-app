@@ -274,6 +274,13 @@ def main() -> None:
     if rc != 0:
         raise RuntimeError("assign-counties failed (%d)" % rc)
 
+    # MosqueIndex muslim overlay (OSM + Google Maps places) — keeps Mapped
+    # Muslim near the US Mosque Survey / Religion Census count.
+    print("reconciling mosques via MosqueIndex…", flush=True)
+    rc = subprocess.call([sys.executable, str(ROOT / "scripts" / "reconcile-mosques.py")])
+    if rc != 0:
+        raise RuntimeError("reconcile-mosques failed (%d)" % rc)
+
 
 if __name__ == "__main__":
     try:

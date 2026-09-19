@@ -1,11 +1,11 @@
 {
-  "built": "2026-09-18",
-  "source": "HIFLD All Places of Worship \u2014 IRS 501(c)(3) EO BMF, HERE geocode",
-  "n": 216231,
+  "built": "2026-09-19",
+  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim",
+  "n": 216776,
   "by": {
     "christian": 204012,
     "jewish": 6013,
-    "muslim": 2204,
+    "muslim": 2749,
     "hindu": 1030,
     "buddhist": 2698,
     "sikh": 274
@@ -54,10 +54,13 @@
     "BAHAIS OF ORONO TOWN",
     "ALLIANCE OF DIVINE LOVE INC"
   ],
-  "county_assign": {
-    "changed_county": 58891,
-    "changed_state": 77,
-    "missed": 1028,
-    "n": 216231
+  "mosque_reconcile": {
+    "mode": "replace-muslim",
+    "previous_hifld_muslim": 2204,
+    "mosqueindex_muslim": 2749,
+    "external": "MosqueIndex (OSM + Google Maps place data)",
+    "census_muslim": 2771,
+    "mosque_survey_2020": 2769,
+    "date": "2026-09-19"
   }
 }
