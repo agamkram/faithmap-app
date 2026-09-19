@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v65";
+  const APP_VERSION = "v66";
   window.__APP_VERSION = APP_VERSION;
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
@@ -848,7 +848,7 @@
     state.map.on("click", function (ev) {
       const z = state.map.getZoom();
       const countyOk = z >= 5;
-      const pinOk = z >= 7;
+      const pinOk = z >= 9;
       const co = countyOk ? countyAtClick(ev.point) : null;
       const st = stateAtClick(ev.point);
 
