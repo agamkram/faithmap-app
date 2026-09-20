@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v80";
+  const APP_VERSION = "v84";
   window.__APP_VERSION = APP_VERSION;
   const ASSET_V = APP_VERSION.replace(/^v/, "");
 
@@ -507,7 +507,7 @@
     const ease = t * t * (3 - 2 * t);
     /* Once pins are tappable (z≥9), keep a finger-visible floor. */
     const base = 0.1 + (5 - 0.1) * ease;
-    const cssPx = z >= 9 ? Math.max(4, base) : base;
+    const cssPx = z >= 9 ? Math.max(3, base) : base;
     const s = Math.max(1, Math.round(cssPx * dpr));
     const center = map.getCenter();
     const cam =
@@ -541,24 +541,10 @@
     const pad = s + 1;
     const b = map.getBounds();
     const buckets = [[], [], [], [], [], []];
-    const seen = [
-      Object.create(null),
-      Object.create(null),
-      Object.create(null),
-      Object.create(null),
-      Object.create(null),
-      Object.create(null),
-    ];
-    const cluster = z < 9;
     forEachViewportPlace(b, function (p, west, east, south, north) {
       const rel = RELIGIONS[p.r];
       if (!rel || !state.active.has(rel.id)) return;
       if (p.o < west || p.o > east || p.a < south || p.a > north) return;
-      if (cluster) {
-        const ck = pinCellKey(p.o, p.a);
-        if (seen[p.r][ck]) return;
-        seen[p.r][ck] = 1;
-      }
       buckets[p.r].push(p);
     });
     for (let r = 0; r < RELIGIONS.length; r++) {
@@ -838,7 +824,7 @@
         delete layer.paint["line-dasharray"];
         layer.paint["line-color"] = "#d4dbe6";
         layer.paint["line-opacity"] = 1;
-        layer.paint["line-width"] = 0.5;
+        layer.paint["line-width"] = 0.4;
         layer.layout = Object.assign({}, layer.layout || {}, {
           "line-cap": "round",
           "line-join": "round",
@@ -848,7 +834,7 @@
         delete layer.paint["line-dasharray"];
         layer.paint["line-color"] = "#e8ecf2";
         layer.paint["line-opacity"] = 1;
-        layer.paint["line-width"] = 0.7;
+        layer.paint["line-width"] = 0.5;
       } else if (id === "boundary_country_outline") {
         layer.paint["line-opacity"] = 0.22;
       } else if (id === "boundary_county") {
@@ -898,7 +884,7 @@
       paint: {
         "line-color": "#c5d0e0",
         "line-opacity": 0.9,
-        "line-width": 0.4,
+        "line-width": 0.3,
       },
     });
     map.addLayer({
@@ -913,7 +899,7 @@
       paint: {
         "line-color": "#3b82f6",
         "line-opacity": 1,
-        "line-width": 1.8,
+        "line-width": 1.2,
       },
     });
   }
@@ -936,7 +922,7 @@
       paint: {
         "line-color": "#3b82f6",
         "line-opacity": 1,
-        "line-width": 1.8,
+        "line-width": 1.2,
       },
     });
   }
@@ -969,7 +955,7 @@
       paint: {
         "line-color": "#3b82f6",
         "line-opacity": 1,
-        "line-width": 1.8,
+        "line-width": 1.2,
       },
     });
   }
