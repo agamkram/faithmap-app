@@ -1,10 +1,10 @@
 {
   "built": "2026-09-20",
-  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups) \u2212 HIFLD/OSM twins (815, exact name \u2264500 m) \u00b7 HIFLD mailbox\u2192OSM building (1308) \u2212 org shells (933)",
-  "n": 339654,
+  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups) \u2212 HIFLD/OSM twins (815, exact name \u2264500 m) \u00b7 HIFLD mailbox\u2192OSM building (1308) \u2212 org shells (933) \u00b7 Messianic Jewish \u2192 Christian (99) \u2212 orgs (6)",
+  "n": 339648,
   "by": {
-    "christian": 326270,
-    "jewish": 6198,
+    "christian": 326369,
+    "jewish": 6093,
     "muslim": 2793,
     "hindu": 1192,
     "buddhist": 2883,
@@ -164,5 +164,11 @@
       "jewish": 144,
       "christian": 789
     }
+  },
+  "messianic_reclass": {
+    "date": "2026-09-20",
+    "to_christian": 99,
+    "dropped": 6,
+    "rule": "Messianic/Yeshua tagged Jewish: congregations \u2192 Christian, orgs dropped"
   }
 }
