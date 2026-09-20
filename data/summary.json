@@ -1,13 +1,13 @@
 {
   "built": "2026-09-20",
-  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups) \u2212 HIFLD/OSM twins (815, exact name \u2264500 m) \u00b7 HIFLD mailbox\u2192OSM building (1308) \u2212 org shells (933) \u00b7 Messianic Jewish \u2192 Christian (99) \u2212 orgs (6)",
-  "n": 339648,
+  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups) \u2212 HIFLD/OSM twins (815, exact name \u2264500 m) \u00b7 HIFLD mailbox\u2192OSM building (1308) \u2212 org shells (933) \u00b7 Messianic Jewish \u2192 Christian (99) \u2212 orgs (6) \u00b7 Hindu OSM leftover (snap 2, add 2) \u2212 Buddhist shells (14)",
+  "n": 339636,
   "by": {
     "christian": 326369,
     "jewish": 6093,
     "muslim": 2793,
-    "hindu": 1192,
-    "buddhist": 2883,
+    "hindu": 1194,
+    "buddhist": 2869,
     "sikh": 318
   },
   "skipped": 2,
@@ -170,5 +170,23 @@
     "to_christian": 99,
     "dropped": 6,
     "rule": "Messianic/Yeshua tagged Jewish: congregations \u2192 Christian, orgs dropped"
+  },
+  "hindu_osm_gaps": {
+    "date": "2026-09-20",
+    "snapped": 2,
+    "added": 2,
+    "rule": "OSM Hindu leftover: snap same-name \u2264500 m onto building; add verified mandirs >2 km from mapped Hindu"
+  },
+  "buddhist_shell_drop": {
+    "date": "2026-09-20",
+    "dropped": 14,
+    "rule": "peace fellowship / relief / research center / temple federation / home meditation group; keep Association wats and Chan institutes",
+    "by_why": {
+      "research_center": 4,
+      "home_group": 7,
+      "temple_federation": 1,
+      "relief": 1,
+      "peace_fellowship": 1
+    }
   }
 }
