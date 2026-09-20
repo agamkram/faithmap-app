@@ -1,14 +1,14 @@
 /* FaithMap service worker — production offline shell.
    Local HTTPS unregisters this (see index.html IS_LOCAL).
    Bump CACHE with APP_VERSION / ?v= via scripts/bump-version.py. */
-const CACHE = "faithmap-v87";
+const CACHE = "faithmap-v88";
 const PRECACHE = [
   "/",
-  "/index.html?v=87",
-  "/styles.css?v=87",
-  "/app.js?v=87",
-  "/vendor/maplibre-gl.js?v=87",
-  "/vendor/maplibre-gl.css?v=87",
+  "/index.html?v=88",
+  "/styles.css?v=88",
+  "/app.js?v=88",
+  "/vendor/maplibre-gl.js?v=88",
+  "/vendor/maplibre-gl.css?v=88",
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
@@ -41,8 +41,12 @@ self.addEventListener("activate", (event) => {
 
 function cacheIfOk(req, res) {
   if (!res || !res.ok || (res.type !== "basic" && res.type !== "cors")) return res;
-  const copy = res.clone();
-  caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+  try {
+    const copy = res.clone();
+    caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+  } catch (err) {
+    /* iOS quota / large bodies — still return the network response. */
+  }
   return res;
 }
 
@@ -60,14 +64,17 @@ self.addEventListener("fetch", (event) => {
   /* Vercel Web Analytics — do not cache or intercept. */
   if (path.startsWith("/_vercel/")) return;
 
+  /* Do not intercept /data or /geo. Caching ~28MB JSON blows iOS quota,
+     and falling back to cached HTML makes load() think places.json is missing. */
+  if (path.startsWith("/data/") || path.startsWith("/geo/")) return;
+
   const isNav = req.mode === "navigate" || path === "/" || path.endsWith(".html");
   const isCode =
     path.endsWith(".js") ||
     path.endsWith(".css") ||
     path.endsWith("manifest.webmanifest");
-  const isData = path.startsWith("/data/") || path.startsWith("/geo/");
 
-  if (isNav || isCode || isData) {
+  if (isNav || isCode) {
     event.respondWith(
       fetch(req)
         .then((res) => cacheIfOk(req, res))

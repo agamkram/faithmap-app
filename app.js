@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v87";
+  const APP_VERSION = "v88";
   window.__APP_VERSION = APP_VERSION;
   const ASSET_V = APP_VERSION.replace(/^v/, "");
 
@@ -1275,8 +1275,21 @@
       return;
     }
     try {
-      await load();
+      let last = null;
+      for (let i = 0; i < 5; i++) {
+        try {
+          await load();
+          last = null;
+          break;
+        } catch (err) {
+          last = err;
+          setStatus("Loading places…");
+          await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+        }
+      }
+      if (last) throw last;
     } catch (err) {
+      console.error(err);
       setStatus("No places file yet. Still building data.");
       return;
     }
