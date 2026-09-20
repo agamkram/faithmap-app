@@ -1,9 +1,9 @@
 {
   "built": "2026-09-19",
   "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups)",
-  "n": 341609,
+  "n": 341633,
   "by": {
-    "christian": 328072,
+    "christian": 328096,
     "jewish": 6347,
     "muslim": 2793,
     "hindu": 1194,
@@ -109,6 +109,23 @@
     "changed_county": 0,
     "changed_state": 0,
     "missed": 1177,
-    "n": 341609
+    "n": 341633
+  },
+  "madison_baptist_gapfill": {
+    "date": "2026-09-19",
+    "source": "kybaptist",
+    "fips": "21151",
+    "added": 24,
+    "skipped_weak": [
+      "Riverview Baptist Church",
+      "Kingston Forks Baptist Church",
+      "Durbin Memorial Baptist Church",
+      "Gracepoint Church",
+      "White Hall Baptist Church",
+      "Hays Fork Baptist Church",
+      "Friendship Valley Baptist Church",
+      "New Bethel Baptist Church"
+    ],
+    "canary": "Union City Baptist Church"
   }
 }
