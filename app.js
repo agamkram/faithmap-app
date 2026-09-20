@@ -2,8 +2,9 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v79";
+  const APP_VERSION = "v80";
   window.__APP_VERSION = APP_VERSION;
+  const ASSET_V = APP_VERSION.replace(/^v/, "");
 
   /* iOS-full-bleed Bug B (GovDash copy): PWA fillH + iPad --pwa-extra-b. */
   let lastFillKey = "";
@@ -161,6 +162,9 @@
     outlineCounty: null,
     outlineNation: false,
     canvas: null,
+    pinGrid: null,
+    lastPinCam: "",
+    modeGen: 0,
   };
 
   function normCountyName(name) {
@@ -187,8 +191,73 @@
     return s.replace(/\s+/g, " ").trim();
   }
 
-  function countyLookupKey(stAbbr, countyName) {
+  function countyLookupKey(stAbbr, countyName, fips) {
+    const id = fips != null && String(fips) !== "" ? String(fips) : "";
+    if (id) return "f:" + id;
     return String(stAbbr || "") + "|" + normCountyName(countyName);
+  }
+
+  function placeCountyKey(place) {
+    if (!place) return "";
+    return countyLookupKey(place.s, place.c, place.f);
+  }
+
+  function focusCountyKey(co) {
+    if (!co) return "";
+    return countyLookupKey(co.s, co.c, co.id);
+  }
+
+  function invalidatePins() {
+    state.pinGrid = null;
+    state.lastPinCam = "";
+  }
+
+  const PIN_CELL = 0.2;
+
+  function pinCellKey(lon, lat) {
+    return Math.floor(lon / PIN_CELL) + ":" + Math.floor(lat / PIN_CELL);
+  }
+
+  function ensurePinGrid() {
+    if (
+      state.pinGrid &&
+      state.pinGrid.n === state.places.length &&
+      state.pinGrid.mode === state.mode
+    ) {
+      return state.pinGrid;
+    }
+    const cells = Object.create(null);
+    for (let i = 0; i < state.places.length; i++) {
+      const p = state.places[i];
+      const k = pinCellKey(p.o, p.a);
+      if (!cells[k]) cells[k] = [];
+      cells[k].push(p);
+    }
+    state.pinGrid = {
+      cells: cells,
+      n: state.places.length,
+      mode: state.mode,
+    };
+    return state.pinGrid;
+  }
+
+  function forEachViewportPlace(bounds, fn) {
+    const grid = ensurePinGrid();
+    const west = bounds.getWest();
+    const east = bounds.getEast();
+    const south = bounds.getSouth();
+    const north = bounds.getNorth();
+    const i0 = Math.floor(west / PIN_CELL);
+    const i1 = Math.floor(east / PIN_CELL);
+    const j0 = Math.floor(south / PIN_CELL);
+    const j1 = Math.floor(north / PIN_CELL);
+    for (let i = i0; i <= i1; i++) {
+      for (let j = j0; j <= j1; j++) {
+        const arr = grid.cells[i + ":" + j];
+        if (!arr) continue;
+        for (let k = 0; k < arr.length; k++) fn(arr[k], west, east, south, north);
+      }
+    }
   }
 
   function fmt(n) {
@@ -310,16 +379,13 @@
       return;
     }
     const byCountyRel = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
-    const byStateRel = Array.from({ length: RELIGIONS.length }, () => Object.create(null));
     for (let i = 0; i < state.mappedPlaces.length; i++) {
       const p = state.mappedPlaces[i];
       const r = p.r;
       if (r < 0 || r >= RELIGIONS.length) continue;
-      const ck = countyLookupKey(p.s, p.c);
+      const ck = placeCountyKey(p);
       if (!byCountyRel[r][ck]) byCountyRel[r][ck] = [];
       byCountyRel[r][ck].push(p);
-      if (!byStateRel[r][p.s]) byStateRel[r][p.s] = [];
-      byStateRel[r][p.s].push(p);
     }
 
     // Exactly `need` pins per county × religion: real Mapped first, then synthetics.
@@ -327,17 +393,18 @@
     const out = [];
     const counties = state.census.c || [];
     for (let ci = 0; ci < counties.length; ci++) {
-      const key = counties[ci][0];
-      const counts = counties[ci][1];
-      const pipe = key.indexOf("|");
-      const st = pipe >= 0 ? key.slice(0, pipe) : "";
-      const cname = pipe >= 0 ? key.slice(pipe + 1) : key;
-      const ck = countyLookupKey(st, cname);
-      const pretty = String(cname || "")
-        .toLowerCase()
-        .replace(/\b[a-z]/g, function (ch) {
-          return ch.toUpperCase();
-        });
+      const row = counties[ci];
+      const rawKey = String(row[0] || "");
+      const counts = row[1];
+      let fips = /^\d{5}$/.test(rawKey) ? rawKey : "";
+      let st = row[2] || "";
+      let pretty = row[3] || "";
+      if (!fips && rawKey.indexOf("|") >= 0) {
+        const pipe = rawKey.indexOf("|");
+        st = rawKey.slice(0, pipe);
+        pretty = rawKey.slice(pipe + 1);
+      }
+      const ck = countyLookupKey(st, pretty, fips);
       for (let r = 0; r < RELIGIONS.length; r++) {
         const need = counts[r] || 0;
         if (need <= 0) continue;
@@ -346,26 +413,20 @@
         for (let i = 0; i < take; i++) out.push(candidates[i]);
         const extra = need - take;
         if (extra <= 0) continue;
-        const templates = candidates.length
-          ? candidates
-          : byStateRel[r][st] || [];
+        /* Stay inside the county: only jitter around Mapped pins in this FIPS. */
+        if (!candidates.length) continue;
         for (let i = 0; i < extra; i++) {
-          let lat = 39.8;
-          let lon = -98.5;
-          if (templates.length) {
-            const t = templates[i % templates.length];
-            lat = t.a;
-            lon = t.o;
-          }
-          const j = jitterAround(lat, lon, ck + ":" + r + ":x", i);
+          const t = candidates[i % candidates.length];
+          const j = jitterAround(t.a, t.o, ck + ":" + r + ":x", i);
           out.push({
             n: "Census congregation",
             r: r,
             a: j.a,
             o: j.o,
-            s: st,
-            c: pretty,
+            s: st || t.s,
+            c: pretty || t.c,
             y: "",
+            f: fips || t.f || "",
             census: true,
           });
         }
@@ -376,14 +437,19 @@
 
   function applyMode(mode) {
     const next = mode === "census" ? "census" : "mapped";
+    if (next === "census" && !state.census) return;
+    const gen = ++state.modeGen;
     if (next === "census" && state.census && !state.censusPlaces.length) {
       setStatus("Building census dots…");
       window.setTimeout(function () {
+        if (gen !== state.modeGen) return;
         buildCensusPlaces();
+        if (gen !== state.modeGen) return;
         state.mode = "census";
         state.places = state.censusPlaces;
         closeSheet();
         paintMode();
+        invalidatePins();
         render();
         recount();
         setStatus("");
@@ -394,6 +460,7 @@
     state.places = state.mode === "census" ? state.censusPlaces : state.mappedPlaces;
     closeSheet();
     paintMode();
+    invalidatePins();
     render();
     recount();
   }
@@ -433,11 +500,6 @@
       canvas.style.width = w + "px";
       canvas.style.height = h + "px";
     }
-    const ctx = canvas.getContext("2d", { alpha: true });
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     const z = map.getZoom();
     const zMin = map.getMinZoom();
     const zMax = map.getMaxZoom();
@@ -447,20 +509,58 @@
     const base = 0.1 + (5 - 0.1) * ease;
     const cssPx = z >= 9 ? Math.max(4, base) : base;
     const s = Math.max(1, Math.round(cssPx * dpr));
+    const center = map.getCenter();
+    const cam =
+      z.toFixed(4) +
+      "|" +
+      center.lng.toFixed(5) +
+      "|" +
+      center.lat.toFixed(5) +
+      "|" +
+      w +
+      "x" +
+      h +
+      "|" +
+      dpr +
+      "|" +
+      s +
+      "|" +
+      state.mode +
+      "|" +
+      state.places.length +
+      "|" +
+      Array.from(state.active).join(",");
+    if (cam === state.lastPinCam) return;
+    state.lastPinCam = cam;
+
+    const ctx = canvas.getContext("2d", { alpha: true });
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     const pad = s + 1;
     const b = map.getBounds();
-    const west = b.getWest();
-    const east = b.getEast();
-    const south = b.getSouth();
-    const north = b.getNorth();
     const buckets = [[], [], [], [], [], []];
-    for (let i = 0; i < state.places.length; i++) {
-      const p = state.places[i];
+    const seen = [
+      Object.create(null),
+      Object.create(null),
+      Object.create(null),
+      Object.create(null),
+      Object.create(null),
+      Object.create(null),
+    ];
+    const cluster = z < 9;
+    forEachViewportPlace(b, function (p, west, east, south, north) {
       const rel = RELIGIONS[p.r];
-      if (!rel || !state.active.has(rel.id)) continue;
-      if (p.o < west || p.o > east || p.a < south || p.a > north) continue;
+      if (!rel || !state.active.has(rel.id)) return;
+      if (p.o < west || p.o > east || p.a < south || p.a > north) return;
+      if (cluster) {
+        const ck = pinCellKey(p.o, p.a);
+        if (seen[p.r][ck]) return;
+        seen[p.r][ck] = 1;
+      }
       buckets[p.r].push(p);
-    }
+    });
     for (let r = 0; r < RELIGIONS.length; r++) {
       const pts = buckets[r];
       if (!pts.length) continue;
@@ -482,23 +582,18 @@
     const hit = 24;
     let bestD = hit * hit;
     const b = state.map.getBounds();
-    const west = b.getWest();
-    const east = b.getEast();
-    const south = b.getSouth();
-    const north = b.getNorth();
     const near = [];
-    for (let i = 0; i < state.places.length; i++) {
-      const p = state.places[i];
+    forEachViewportPlace(b, function (p, westB, eastB, southB, northB) {
       const rel = RELIGIONS[p.r];
-      if (!rel || !state.active.has(rel.id)) continue;
-      if (p.o < west || p.o > east || p.a < south || p.a > north) continue;
+      if (!rel || !state.active.has(rel.id)) return;
+      if (p.o < westB || p.o > eastB || p.a < southB || p.a > northB) return;
       const pt = state.map.project([p.o, p.a]);
       const dx = pt.x - point.x;
       const dy = pt.y - point.y;
       const d = dx * dx + dy * dy + (p.census ? 36 : 0);
       if (d <= hit * hit) near.push({ p: p, d: d });
       if (d < bestD) bestD = d;
-    }
+    });
     if (!near.length) return null;
     /* Same IRS geocode often stacks many orgs on one lat/lon. Keep everyone
        tied for closest, then cycle on repeated taps at that spot. */
@@ -538,7 +633,7 @@
     state.selected = place;
     if (place && place.s) state.focusState = place.s;
     if (place && place.s && place.c) {
-      state.focusCounty = { s: place.s, c: place.c, id: null };
+      state.focusCounty = { s: place.s, c: place.c, id: place.f ? String(place.f) : null };
     }
     const rel = RELIGIONS[place.r];
     const stackN = state.stack && state.stack.length > 1 ? state.stack.length : 0;
@@ -551,8 +646,7 @@
       el.sheetRel.textContent = rel ? rel.label : "";
       el.sheetRel.style.color = rel ? rel.color : "";
       el.sheetWhere.textContent =
-        (place.c ? place.c + " County" : "County") +
-        (place.s ? " · " + place.s : "") +
+        [place.c, place.s].filter(Boolean).join(" · ") +
         " · not a street address" +
         stackHint;
       el.sheetMaps.classList.add("hidden");
@@ -560,7 +654,7 @@
       el.sheetName.textContent = place.n || "Unnamed";
       el.sheetRel.textContent = rel ? rel.label : "";
       el.sheetRel.style.color = rel ? rel.color : "";
-      const bits = [place.y, place.c ? place.c + " County" : "", place.s].filter(Boolean);
+      const bits = [place.y, place.c, place.s].filter(Boolean);
       el.sheetWhere.textContent = bits.join(" · ") + stackHint;
       el.sheetMaps.classList.remove("hidden");
       el.sheetMaps.href =
@@ -603,23 +697,30 @@
       }
       const counties = state.census.c || [];
       for (let ci = 0; ci < counties.length; ci++) {
-        const key = counties[ci][0];
-        const vals = counties[ci][1];
+        const row = counties[ci];
+        const rawKey = String(row[0] || "");
+        const vals = row[1];
         let n = 0;
         for (const i of activeIdx) n += vals[i] || 0;
         if (!n) continue;
-        const pipe = key.indexOf("|");
-        const stAbbr = pipe >= 0 ? key.slice(0, pipe) : "";
-        const cname = pipe >= 0 ? key.slice(pipe + 1) : key;
-        byCounty[countyLookupKey(stAbbr, cname)] = n;
+        let fips = /^\d{5}$/.test(rawKey) ? rawKey : "";
+        let stAbbr = row[2] || "";
+        let cname = row[3] || "";
+        if (!fips && rawKey.indexOf("|") >= 0) {
+          const pipe = rawKey.indexOf("|");
+          stAbbr = rawKey.slice(0, pipe);
+          cname = rawKey.slice(pipe + 1);
+        }
+        byCounty[countyLookupKey(stAbbr, cname, fips)] = n;
       }
     } else {
       for (const p of state.places) {
         if (!activeIdx.has(p.r)) continue;
         us += 1;
         byState[p.s] = (byState[p.s] || 0) + 1;
-        if (p.c) {
-          byCounty[countyLookupKey(p.s, p.c)] = (byCounty[countyLookupKey(p.s, p.c)] || 0) + 1;
+        if (p.c || p.f) {
+          const ck = placeCountyKey(p);
+          byCounty[ck] = (byCounty[ck] || 0) + 1;
         }
       }
     }
@@ -627,12 +728,12 @@
     /* One total: pin/county tap → county, state tap → state, else US. */
     let lab = "US";
     let val = fmt(us);
-    if (state.selected && state.selected.c && state.selected.s) {
-      lab = state.selected.c;
-      val = fmt(byCounty[countyLookupKey(state.selected.s, state.selected.c)] || 0);
+    if (state.selected && (state.selected.c || state.selected.f) && state.selected.s) {
+      lab = state.selected.c || lab;
+      val = fmt(byCounty[placeCountyKey(state.selected)] || 0);
     } else if (state.focusCounty && state.focusCounty.s && state.focusCounty.c) {
       lab = state.focusCounty.c;
-      val = fmt(byCounty[countyLookupKey(state.focusCounty.s, state.focusCounty.c)] || 0);
+      val = fmt(byCounty[focusCountyKey(state.focusCounty)] || 0);
     } else if (state.focusState) {
       lab = state.focusState;
       val = fmt(byState[state.focusState] || 0);
@@ -773,7 +874,7 @@
     if (!map || map.getSource("wo-counties")) return;
     map.addSource("wo-counties", {
       type: "geojson",
-      data: "/geo/counties.geojson",
+      data: "/geo/counties.geojson?v=" + ASSET_V,
     });
     map.addLayer({
       id: "wo-county-fill",
@@ -821,7 +922,7 @@
     if (!map || map.getSource("wo-usa")) return;
     map.addSource("wo-usa", {
       type: "geojson",
-      data: "/geo/usa.geojson",
+      data: "/geo/usa.geojson?v=" + ASSET_V,
     });
     map.addLayer({
       id: "wo-nation-hl",
@@ -844,7 +945,7 @@
     if (!map || map.getSource("wo-states")) return;
     map.addSource("wo-states", {
       type: "geojson",
-      data: "/geo/states.geojson",
+      data: "/geo/states.geojson?v=" + ASSET_V,
     });
     /* Invisible fill so taps can hit a state body, not just the outline. */
     map.addLayer({
@@ -926,8 +1027,10 @@
     state.focusState = co.s;
     if (
       state.selected &&
-      (state.selected.s !== co.s ||
-        normCountyName(state.selected.c) !== normCountyName(co.c))
+      (state.selected.f && co.id
+        ? String(state.selected.f) !== String(co.id)
+        : state.selected.s !== co.s ||
+          normCountyName(state.selected.c) !== normCountyName(co.c))
     ) {
       closeSheet();
     } else recount();
@@ -1072,6 +1175,7 @@
         if (!rel || !state.active.has(rel.id)) closeSheet();
       }
       paintChips();
+      invalidatePins();
       render();
       recount();
     });
@@ -1124,7 +1228,7 @@
 
   async function load() {
     setStatus("Loading places…");
-    const res = await fetch("/data/places.json?v=1", { cache: "no-store" });
+    const res = await fetch("/data/places.json?v=" + ASSET_V, { cache: "no-store" });
     if (!res.ok) throw new Error("data " + res.status);
     const payload = await res.json();
     state.meta = payload.meta || {};
@@ -1138,6 +1242,7 @@
           s: row[4],
           c: row[5],
           y: row[6],
+          f: row[7] ? String(row[7]) : "",
         };
       }
       return row;
@@ -1145,12 +1250,17 @@
     state.places = state.mappedPlaces;
 
     try {
-      const cres = await fetch("/data/census.json?v=1", { cache: "no-store" });
+      const cres = await fetch("/data/census.json?v=" + ASSET_V, { cache: "no-store" });
       if (cres.ok) {
         state.census = await cres.json();
       }
     } catch (err) {
       console.warn("census load failed", err);
+    }
+
+    if (!state.census && el.modeCensus) {
+      el.modeCensus.disabled = true;
+      el.modeCensus.title = "Census file missing";
     }
 
     if (el.aboutSrc) {

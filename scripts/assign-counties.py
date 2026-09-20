@@ -66,8 +66,9 @@ def main() -> int:
             for g in geoms:
                 if g.is_empty or g.area <= 0:
                     continue
+                fips = str(props.get("id") or "").strip()
                 polys.append(g)
-                meta.append((st, cname))
+                meta.append((st, cname, fips))
         except Exception:
             skipped_geom += 1
             continue
@@ -114,13 +115,18 @@ def main() -> int:
         if found is None:
             missed += 1
             continue
-        st, cname = found
+        st, cname, fips = found
         if row[5] != cname:
             changed_c += 1
             row[5] = cname
         if row[4] != st:
             changed_s += 1
             row[4] = st
+        if fips:
+            if len(row) < 8:
+                row.append(fips)
+            elif row[7] != fips:
+                row[7] = fips
 
     text = json.dumps(payload, separators=(",", ":"))
     PLACES.write_text(text, encoding="utf-8")

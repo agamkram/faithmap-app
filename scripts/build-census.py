@@ -149,6 +149,7 @@ def main() -> int:
     ws = wb["2020 Group by County"]
 
     by_county: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
+    by_county_meta: dict[str, tuple[str, str]] = {}
     by_state: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
     us = [0, 0, 0, 0, 0, 0]
     skipped = 0
@@ -164,22 +165,36 @@ def main() -> int:
         n = int(cong or 0)
         if n <= 0:
             continue
-        key = county_key(str(state_name or ""), str(county_name or ""))
-        if not key:
+        raw = str(fips or "").strip()
+        if raw.endswith(".0"):
+            raw = raw[:-2]
+        if raw.isdigit():
+            key = raw.zfill(5)
+        else:
             skipped += 1
             continue
+        st = STATE_ABBR.get(str(state_name or ""), "")
+        pretty = re.sub(
+            r"\s+(County|Parish|Borough|Census Area|Municipality|"
+            r"City and Borough)\s*$",
+            "",
+            str(county_name or ""),
+            flags=re.I,
+        ).strip()
         i = REL_INDEX[rel]
         by_county[key][i] += n
-        st = key.split("|", 1)[0]
-        by_state[st][i] += n
+        by_county_meta[key] = (st, pretty)
+        if st:
+            by_state[st][i] += n
         us[i] += n
 
-    # Compact: only counties with any count; keys sorted
+    # Compact: FIPS, counts, state abbr, display name
     counties = []
     for key in sorted(by_county.keys()):
         vals = by_county[key]
         if any(vals):
-            counties.append([key, vals])
+            st, pretty = by_county_meta.get(key, ("", ""))
+            counties.append([key, vals, st, pretty])
 
     states = {k: by_state[k] for k in sorted(by_state.keys()) if any(by_state[k])}
 
@@ -190,7 +205,7 @@ def main() -> int:
             "k": REL_IDS,
             "us": us,
             "counties": len(counties),
-            "note": "No addresses. Census mode draws exactly need pins per county × religion (Mapped first, then synthetic).",
+            "note": "No addresses. Counties keyed by FIPS. Census mode draws exactly need pins per county × religion (Mapped first, then synthetic).",
         },
         "us": us,
         "s": states,

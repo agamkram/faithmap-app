@@ -1,12 +1,14 @@
 /* FaithMap service worker — production offline shell.
    Local HTTPS unregisters this (see index.html IS_LOCAL).
    Bump CACHE with APP_VERSION / ?v= via scripts/bump-version.py. */
-const CACHE = "faithmap-v79";
+const CACHE = "faithmap-v80";
 const PRECACHE = [
   "/",
-  "/index.html?v=79",
-  "/styles.css?v=79",
-  "/app.js?v=79",
+  "/index.html?v=80",
+  "/styles.css?v=80",
+  "/app.js?v=80",
+  "/vendor/maplibre-gl.js?v=80",
+  "/vendor/maplibre-gl.css?v=80",
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
@@ -37,6 +39,13 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+function cacheIfOk(req, res) {
+  if (!res || !res.ok || (res.type !== "basic" && res.type !== "cors")) return res;
+  const copy = res.clone();
+  caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+  return res;
+}
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
@@ -56,15 +65,12 @@ self.addEventListener("fetch", (event) => {
     path.endsWith(".js") ||
     path.endsWith(".css") ||
     path.endsWith("manifest.webmanifest");
+  const isData = path.startsWith("/data/") || path.startsWith("/geo/");
 
-  if (isNav || isCode) {
+  if (isNav || isCode || isData) {
     event.respondWith(
       fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
-          return res;
-        })
+        .then((res) => cacheIfOk(req, res))
         .catch(() => caches.match(req).then((hit) => hit || caches.match("/")))
     );
     return;
@@ -73,11 +79,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(req).then((hit) => {
       if (hit) return hit;
-      return fetch(req).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
-        return res;
-      });
+      return fetch(req).then((res) => cacheIfOk(req, res));
     })
   );
 });

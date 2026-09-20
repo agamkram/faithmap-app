@@ -301,6 +301,11 @@ def main() -> None:
     if rc != 0:
         raise RuntimeError("refine-mapped failed (%d)" % rc)
 
+    print("re-assigning counties + FIPS after gap-fill…", flush=True)
+    rc = subprocess.call([sys.executable, str(ROOT / "scripts" / "assign-counties.py")])
+    if rc != 0:
+        raise RuntimeError("assign-counties failed (%d)" % rc)
+
 
 if __name__ == "__main__":
     try:

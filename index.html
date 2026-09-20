@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
   />
   <meta name="theme-color" content="#0e1116" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -80,8 +80,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=79" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=79" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=80" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=80" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -89,15 +89,17 @@
     rel="stylesheet"
   />
   <link
-    href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+    href="/vendor/maplibre-gl.css?v=80"
     rel="stylesheet"
+    integrity="sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V"
   />
-  <link rel="stylesheet" href="/styles.css?v=79" />
+  <link rel="stylesheet" href="/styles.css?v=80" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
   <div class="app" id="app">
     <header class="topbar" id="chrome" role="banner">
+      <span class="ver-badge" id="ver-badge">v80</span>
       <div class="topbar-title">
         <h1 class="brand-title">FaithMap</h1>
       </div>
@@ -159,13 +161,25 @@
     <p class="about-src" id="about-src"></p>
   </div>
 
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="/app.js?v=79"></script>
+  <script
+    src="/vendor/maplibre-gl.js?v=80"
+    integrity="sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj"
+  ></script>
+  <script src="/app.js?v=80"></script>
   <script>
-    var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
-      location.hostname
-    );
-    var EXPECTED = "v79";
+    function isLocalHost(h) {
+      h = String(h || "").toLowerCase();
+      if (!h) return true;
+      if (h === "localhost" || h === "0.0.0.0" || h === "[::1]" || h === "::1") return true;
+      if (h.endsWith(".local")) return true;
+      if (/^127\./.test(h)) return true;
+      if (/^10\./.test(h)) return true;
+      if (/^192\.168\./.test(h)) return true;
+      if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h)) return true;
+      return false;
+    }
+    var IS_LOCAL = isLocalHost(location.hostname);
+    var EXPECTED = "v80";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)
