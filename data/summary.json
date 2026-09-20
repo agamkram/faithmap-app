@@ -1,9 +1,9 @@
 {
   "built": "2026-09-20",
-  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups) \u2212 HIFLD/OSM twins (815, exact name \u2264500 m)",
-  "n": 340818,
+  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups) \u2212 HIFLD/OSM twins (815, exact name \u2264500 m) \u00b7 HIFLD mailbox\u2192OSM building (1308)",
+  "n": 340587,
   "by": {
-    "christian": 327290,
+    "christian": 327059,
     "jewish": 6342,
     "muslim": 2793,
     "hindu": 1192,
@@ -138,6 +138,16 @@
       "sikh": 1,
       "hindu": 2,
       "buddhist": 1
+    }
+  },
+  "hifld_geocode_snap": {
+    "date": "2026-09-20",
+    "snapped": 1308,
+    "osm_twins_dropped": 231,
+    "rule": "unique same-name OSM \u2264500 m",
+    "by": {
+      "christian": 1303,
+      "jewish": 5
     }
   }
 }
