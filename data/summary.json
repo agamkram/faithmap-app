@@ -1,10 +1,10 @@
 {
   "built": "2026-09-20",
-  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups) \u2212 HIFLD/OSM twins (815, exact name \u2264500 m) \u00b7 HIFLD mailbox\u2192OSM building (1308)",
-  "n": 340587,
+  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups) \u2212 HIFLD/OSM twins (815, exact name \u2264500 m) \u00b7 HIFLD mailbox\u2192OSM building (1308) \u2212 org shells (933)",
+  "n": 339654,
   "by": {
-    "christian": 327059,
-    "jewish": 6342,
+    "christian": 326270,
+    "jewish": 6198,
     "muslim": 2793,
     "hindu": 1192,
     "buddhist": 2883,
@@ -148,6 +148,21 @@
     "by": {
       "christian": 1303,
       "jewish": 5
+    }
+  },
+  "org_shell_drop": {
+    "date": "2026-09-20",
+    "dropped": 933,
+    "rule": "ministries/association/federation without a worship building word; Catholic Daughters; Jewish mikvah/eruv",
+    "by_why": {
+      "jewish_org": 83,
+      "catholic_daughters": 771,
+      "christian_foundation": 18,
+      "jewish_mikvah_eruv": 61
+    },
+    "by": {
+      "jewish": 144,
+      "christian": 789
     }
   }
 }
