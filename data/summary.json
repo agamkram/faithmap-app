@@ -1,14 +1,14 @@
 {
-  "built": "2026-09-19",
-  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups)",
-  "n": 341633,
+  "built": "2026-09-20",
+  "source": "HIFLD All Places of Worship (non-Muslim) + MosqueIndex (OSM + Google Maps place data) for Muslim + Orleans Parish OSM Christian gaps (285) + Geofabrik OSM POW gaps (167187, \u22121689 dups) \u2212 HIFLD/OSM twins (815, exact name \u2264500 m)",
+  "n": 340818,
   "by": {
-    "christian": 328096,
-    "jewish": 6347,
+    "christian": 327290,
+    "jewish": 6342,
     "muslim": 2793,
-    "hindu": 1194,
-    "buddhist": 2884,
-    "sikh": 319
+    "hindu": 1192,
+    "buddhist": 2883,
+    "sikh": 318
   },
   "skipped": 2,
   "unclassified": 38509,
@@ -127,5 +127,17 @@
       "New Bethel Baptist Church"
     ],
     "canary": "Union City Baptist Church"
+  },
+  "hifld_osm_dupe_drop": {
+    "date": "2026-09-20",
+    "dropped": 815,
+    "rule": "exact name tokens, 250\u2013500 m, keep HIFLD (has city)",
+    "by": {
+      "christian": 806,
+      "jewish": 5,
+      "sikh": 1,
+      "hindu": 2,
+      "buddhist": 1
+    }
   }
 }

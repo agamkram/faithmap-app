@@ -241,9 +241,12 @@ def centroid(shape) -> tuple[float, float] | None:
     # Point
     if shape.shapeType in (1, 11, 21) or len(pts) == 1:
         return float(pts[0][1]), float(pts[0][0])  # lat, lon — shapefile is lon,lat
-    # Polygon / multipoint: average ring (Geofabrik lon/lat order)
-    xs = [p[0] for p in pts]
-    ys = [p[1] for p in pts]
+    # Polygon / multipoint: outer-ring average (not holes / all vertices).
+    parts = list(shape.parts or [0])
+    end = parts[1] if len(parts) > 1 else len(pts)
+    ring = pts[0:end] or pts
+    xs = [p[0] for p in ring]
+    ys = [p[1] for p in ring]
     return sum(ys) / len(ys), sum(xs) / len(xs)
 
 
