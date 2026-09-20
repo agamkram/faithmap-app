@@ -2,8 +2,104 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v78";
+  const APP_VERSION = "v79";
   window.__APP_VERSION = APP_VERSION;
+
+  /* iOS-full-bleed Bug B (GovDash copy): PWA fillH + iPad --pwa-extra-b. */
+  let lastFillKey = "";
+  let lastSafeInset = { w: 0, h: 0, v: 0 };
+
+  function isStandaloneDisplay() {
+    return (
+      window.navigator.standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches
+    );
+  }
+
+  function isTouchShell() {
+    if (/iPad|iPhone|iPod/i.test(navigator.userAgent || "")) return true;
+    if (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1) {
+      return true;
+    }
+    return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  }
+
+  function isTabletShell() {
+    const minSide = Math.min(window.innerWidth || 0, window.innerHeight || 0);
+    if (minSide < 600) return false;
+    if (/iPhone|iPod/i.test(navigator.userAgent || "")) return false;
+    return isTouchShell();
+  }
+
+  function syncTabletClass() {
+    document.documentElement.classList.toggle("is-tablet", isTabletShell());
+  }
+
+  function pwaFillHeightPx() {
+    const iw = window.innerWidth || 0;
+    const ih = window.innerHeight || 0;
+    const sw = window.screen?.width || 0;
+    const sh = window.screen?.height || 0;
+    const screenMax = Math.max(sw, sh);
+    const screenMin = Math.min(sw, sh);
+    return ih >= iw ? Math.max(ih, screenMax) : Math.max(ih, screenMin);
+  }
+
+  function readSafeInsetBottom() {
+    const w = window.innerWidth || 0;
+    const h = window.innerHeight || 0;
+    if (lastSafeInset.w === w && lastSafeInset.h === h) return lastSafeInset.v;
+    if (!document.body) return 0;
+    const probe = document.createElement("div");
+    probe.style.cssText =
+      "position:fixed;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px)";
+    document.body.appendChild(probe);
+    const px = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+    probe.remove();
+    lastSafeInset = { w, h, v: px };
+    return px;
+  }
+
+  function pwaExtraBottomPx() {
+    const iw = window.innerWidth || 0;
+    const ih = window.innerHeight || 0;
+    const sw = window.screen?.width || 0;
+    const sh = window.screen?.height || 0;
+    const screenMax = Math.max(sw, sh);
+    if (Math.min(iw, ih) >= 600 && screenMax < ih - 10) {
+      return Math.max(readSafeInsetBottom(), 20);
+    }
+    return 0;
+  }
+
+  function pinShellViewport() {
+    const root = document.documentElement;
+    syncTabletClass();
+    const standalone =
+      isStandaloneDisplay() || root.classList.contains("pwa-standalone");
+    if (!standalone) {
+      root.classList.remove("pwa-standalone");
+      root.style.removeProperty("--pwa-fill-h");
+      root.style.removeProperty("--pwa-extra-b");
+      root.style.removeProperty("height");
+      root.style.removeProperty("min-height");
+      lastFillKey = "";
+      return;
+    }
+    const fillH = pwaFillHeightPx();
+    const extra = pwaExtraBottomPx();
+    const total = fillH + extra;
+    const key = "pwa:" + fillH + "+" + extra;
+    root.classList.add("pwa-standalone");
+    if (key === lastFillKey) return;
+    lastFillKey = key;
+    root.style.setProperty("--pwa-fill-h", fillH + "px");
+    root.style.setProperty("--pwa-extra-b", extra + "px");
+    root.style.height = total + "px";
+    root.style.minHeight = total + "px";
+  }
 
   const CARTO_KEY = "cb1_27ow_1_73656a41346af19fc01d4d26";
   const CARTO_STYLE =
@@ -935,6 +1031,7 @@
       clearFocusToNation();
     });
     window.addEventListener("resize", function () {
+      pinShellViewport();
       setTimeout(function () {
         if (!state.map) return;
         state.map.resize();
@@ -942,12 +1039,19 @@
       }, 200);
     });
     window.addEventListener("orientationchange", function () {
+      pinShellViewport();
       setTimeout(function () {
         if (!state.map) return;
         state.map.resize();
         if (state.map.getZoom() <= 5) refit();
       }, 280);
     });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", function () {
+        pinShellViewport();
+        if (state.map) state.map.resize();
+      });
+    }
   }
 
   function wire() {
@@ -1063,6 +1167,7 @@
   }
 
   async function start() {
+    pinShellViewport();
     paintChips();
     paintMode();
     wire();
@@ -1079,6 +1184,8 @@
       setStatus("No places file yet. Still building data.");
       return;
     }
+    pinShellViewport();
+    if (state.map) state.map.resize();
     render();
     recount();
     setStatus("");

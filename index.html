@@ -37,6 +37,9 @@
     offsetTop/Left. Safari: shell inset 0. Do not use max-height:100dvh on PWA.
   -->
   <script>
+    /* Desktop iOS-full-bleed.txt Bug B — copy GovDash.
+       PWA: fillH before first paint. iPad: --pwa-extra-b when screen.*
+       undershoots inner. Safari tab: do not use VV offsets (FaithMap). */
     (function () {
       try {
         var r = document.documentElement;
@@ -45,18 +48,28 @@
           n.standalone === true ||
           (window.matchMedia &&
             (window.matchMedia("(display-mode: standalone)").matches ||
-              window.matchMedia("(display-mode: fullscreen)").matches));
+              window.matchMedia("(display-mode: fullscreen)").matches ||
+              window.matchMedia("(display-mode: minimal-ui)").matches));
         var iw = window.innerWidth || 0;
         var ih = window.innerHeight || 0;
         var sw = (window.screen && window.screen.width) || 0;
         var sh = (window.screen && window.screen.height) || 0;
         var screenMax = Math.max(sw, sh);
         var screenMin = Math.min(sw, sh);
+        var minSide = Math.min(iw, ih);
+        var ipad =
+          /iPad/i.test(n.userAgent || "") ||
+          (n.platform === "MacIntel" && (n.maxTouchPoints || 0) > 1);
+        var coarse =
+          window.matchMedia &&
+          (window.matchMedia("(hover: none)").matches ||
+            window.matchMedia("(pointer: coarse)").matches);
+        if (minSide >= 600 && (ipad || coarse)) r.classList.add("is-tablet");
         if (standalone) {
           r.classList.add("pwa-standalone");
           var fillH = ih >= iw ? Math.max(ih, screenMax) : Math.max(ih, screenMin);
           var extra = 0;
-          if (Math.min(iw, ih) >= 600 && screenMax < ih - 10) extra = 20;
+          if (minSide >= 600 && screenMax < ih - 10) extra = 20;
           var total = fillH + extra;
           r.style.setProperty("--pwa-fill-h", fillH + "px");
           r.style.setProperty("--pwa-extra-b", extra + "px");
@@ -67,8 +80,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=78" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=78" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=79" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=79" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -79,7 +92,7 @@
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/styles.css?v=78" />
+  <link rel="stylesheet" href="/styles.css?v=79" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
@@ -147,12 +160,12 @@
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="/app.js?v=78"></script>
+  <script src="/app.js?v=79"></script>
   <script>
     var IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
       location.hostname
     );
-    var EXPECTED = "v78";
+    var EXPECTED = "v79";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)
