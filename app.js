@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v84";
+  const APP_VERSION = "v85";
   window.__APP_VERSION = APP_VERSION;
   const ASSET_V = APP_VERSION.replace(/^v/, "");
 
