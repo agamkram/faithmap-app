@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v93";
+  const APP_VERSION = "v94";
   window.__APP_VERSION = APP_VERSION;
   const ASSET_V = APP_VERSION.replace(/^v/, "");
 
@@ -1251,12 +1251,13 @@
 
     if (el.aboutSrc) {
       const bits = [];
-      if (state.meta.source) bits.push(state.meta.source);
-      if (state.meta.built) bits.push("built " + state.meta.built);
       bits.push(fmt(state.meta.n || state.mappedPlaces.length) + " mapped");
       if (state.census && state.census.us) {
-        bits.push(fmt(state.census.us.reduce(function (a, b) { return a + b; }, 0)) + " census");
+        bits.push(
+          fmt(state.census.us.reduce(function (a, b) { return a + b; }, 0)) + " census"
+        );
       }
+      if (state.meta.built) bits.push("built " + state.meta.built);
       el.aboutSrc.textContent = bits.join(" · ");
     }
     paintMode();

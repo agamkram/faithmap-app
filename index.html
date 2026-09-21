@@ -80,8 +80,8 @@
     })();
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" type="image/png" href="/favicon-32.png?v=93" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=93" />
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=94" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=94" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -89,11 +89,11 @@
     rel="stylesheet"
   />
   <link
-    href="/vendor/maplibre-gl.css?v=93"
+    href="/vendor/maplibre-gl.css?v=94"
     rel="stylesheet"
     integrity="sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V"
   />
-  <link rel="stylesheet" href="/styles.css?v=93" />
+  <link rel="stylesheet" href="/styles.css?v=94" />
 </head>
 <body>
   <a class="skip-link" href="#map">Skip to map</a>
@@ -144,15 +144,16 @@
     <button type="button" class="sheet-close" id="about-close" aria-label="Close">×</button>
     <h2 id="about-title">FaithMap</h2>
     <p>
-      Two views. <strong>Mapped</strong> shows real map locations you can open
-      in Maps: IRS-registered houses of worship, filled with OpenStreetMap
-      gaps for all six religions, and mosques from MosqueIndex so Muslim
-      counts line up with the U.S. Mosque Survey.
-      <strong>Census</strong> shows exactly the 2020 U.S. Religion Census
-      congregation count for each county and religion: real Mapped places first,
-      then anonymous dots for any shortfall. Those extras have no street address.
-      Where Mapped has more places than the census counted, the extras stay in
-      Mapped view only — so in Census view the pin count matches the total.
+      Two views. <strong>Mapped</strong> is buildings you can open in Maps.
+      The base is HIFLD (DHS): IRS 501(c)(3) mailing addresses, filled with
+      OpenStreetMap houses of worship. Mosques come from MosqueIndex so
+      Muslim counts sit next to the U.S. Mosque Survey.
+    </p>
+    <p>
+      <strong>Census</strong> is the 2020 U.S. Religion Census (ASARB):
+      that congregation count per county and religion, Mapped pins first,
+      then anonymous dots for any shortfall. Those extras have no address.
+      Where Mapped has more than the census, the extras stay in Mapped only.
     </p>
     <p class="about-src">
       Map: © OpenStreetMap contributors · © CARTO (Dark Matter)
@@ -161,10 +162,10 @@
   </div>
 
   <script
-    src="/vendor/maplibre-gl.js?v=93"
+    src="/vendor/maplibre-gl.js?v=94"
     integrity="sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj"
   ></script>
-  <script src="/app.js?v=93"></script>
+  <script src="/app.js?v=94"></script>
   <script>
     function isLocalHost(h) {
       h = String(h || "").toLowerCase();
@@ -178,7 +179,7 @@
       return false;
     }
     var IS_LOCAL = isLocalHost(location.hostname);
-    var EXPECTED = "v93";
+    var EXPECTED = "v94";
 
     function loadedVersions() {
       var css = getComputedStyle(document.documentElement)
