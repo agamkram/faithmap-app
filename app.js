@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v96";
+  const APP_VERSION = "v97";
   window.__APP_VERSION = APP_VERSION;
   const ASSET_V = APP_VERSION.replace(/^v/, "");
 
@@ -142,7 +142,7 @@
     { id: "jewish", label: "Jewish", color: "#7eb6ff" },
     { id: "muslim", label: "Muslim", color: "#3dffa3" },
     { id: "hindu", label: "Hindu", color: "#ff7a3a" },
-    { id: "buddhist", label: "Buddhist", color: "#ffe566" },
+    { id: "buddhist", label: "Buddhist", color: "#c9a8ff" },
     { id: "sikh", label: "Sikh", color: "#ffb020" },
   ];
 

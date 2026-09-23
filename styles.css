@@ -17,14 +17,14 @@
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
-  --wo-css: 96;
+  --wo-css: 97;
   --pwa-fill-h: 100%;
   --pwa-extra-b: 0px;
   --christian: #ffd58a;
   --jewish: #7eb6ff;
   --muslim: #3dffa3;
   --hindu: #ff7a3a;
-  --buddhist: #ffe566;
+  --buddhist: #c9a8ff;
   --sikh: #ffb020;
 }
 
