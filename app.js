@@ -2,9 +2,40 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "v94";
+  const APP_VERSION = "v96";
   window.__APP_VERSION = APP_VERSION;
   const ASSET_V = APP_VERSION.replace(/^v/, "");
+
+  /* Continent stays a spec so Christian density does not blob.
+     Size climbs as soon as you leave continent; street caps at 6. */
+  const PIN_SIZE_STOPS = [
+    [2, 0.1],
+    [4, 1.0],
+    [7, 2.8],
+    [9, 3.8],
+    [14, 5.7],
+    [18, 6],
+  ];
+
+  function pinCssPx(z) {
+    const stops = PIN_SIZE_STOPS;
+    let css = stops[stops.length - 1][1];
+    if (z <= stops[0][0]) {
+      css = stops[0][1];
+    } else {
+      for (let i = 1; i < stops.length; i++) {
+        if (z <= stops[i][0]) {
+          const z0 = stops[i - 1][0];
+          const v0 = stops[i - 1][1];
+          const span = stops[i][0] - z0;
+          const u = span ? (z - z0) / span : 1;
+          css = v0 + (stops[i][1] - v0) * u;
+          break;
+        }
+      }
+    }
+    return z >= 9 ? Math.max(3, css) : css;
+  }
 
   /* iOS-full-bleed Bug B (GovDash copy): PWA fillH + iPad --pwa-extra-b. */
   let lastFillKey = "";
@@ -501,13 +532,7 @@
       canvas.style.height = h + "px";
     }
     const z = map.getZoom();
-    const zMin = map.getMinZoom();
-    const zMax = map.getMaxZoom();
-    const t = Math.max(0, Math.min(1, (z - zMin) / Math.max(1e-6, zMax - zMin)));
-    const ease = t * t * (3 - 2 * t);
-    /* Once pins are tappable (z≥9), keep a finger-visible floor. */
-    const base = 0.1 + (5 - 0.1) * ease;
-    const cssPx = z >= 9 ? Math.max(3, base) : base;
+    const cssPx = pinCssPx(z);
     const s = Math.max(1, Math.round(cssPx * dpr));
     const center = map.getCenter();
     const cam =
